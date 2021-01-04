@@ -18,26 +18,10 @@ const store = new Store({
 });
 
 app.on('ready', () => {
-  store.set('items', [
-    {
-      id: '7702418000148',
-      name: 'Cebion Vitamin C',
-      stock: 100,
-      price: 15.5
-    },
-    {
-      id: '9520052929803',
-      name: 'Reusable Mask',
-      stock: 12,
-      price: 22
-    },
-    {
-      id: '9556089006057',
-      name: 'Faber Castle Pencil',
-      stock: 21,
-      price: 11.4
-    }
-  ]);
+
+  if (!store.get('items')) {
+    store.set('items', []);
+  }
 
   const todayDate = dateConverter(new Date());
   const allCustomers = store.get('customers');

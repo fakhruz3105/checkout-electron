@@ -2,7 +2,7 @@ const { ipcRenderer, ipcMain } = require('electron');
 
 const app = new Vue({
   data: {
-    page: 'receipt-list',
+    page: 'stock-list',
     items: [],
     customers: {},
     checkoutItems: [],
