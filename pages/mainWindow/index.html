@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Checkout App</title>
+  <link rel="stylesheet" href="../main.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="../common/vue.dev.js"></script>
+  <script src="index.js" defer></script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="container nav">
+        <div class="logo">
+          <img src="shop.png" alt="shop-logo">
+          <p>Kedai Maci Ayang</p>
+        </div>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a @click="openCheckoutModal">Checkout</a>
+          </li>
+          <li class="nav-item">
+            <a @click="openAddStockModal">Tambah Stock</a>
+          </li>
+          <li class="nav-item">
+              <a @click="page = 'stock-list'">Senarai Stock</a>
+          </li>
+          <li class="nav-item">
+            <a @click="page = 'receipt-list'">Senarai Resit</a>
+          </li>
+        </ul>
+    </div>
+    </header>
+    <div v-if="page === 'stock-list'" class="main container">
+      <input v-model="search" id="search" type="text" placeholder="Search">
+      <table id="outStock" class="item-list">
+        <caption>Kehabisan Stock</caption>
+        <thead>
+          <tr>
+            <th>Barcode</th>
+            <th style="width: 60%;">Nama Barang</th>
+            <th style="width: 15%;">Stock</th>
+            <th style="width: 15%;">Harga(RM)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="outOfStockItems.length > 0">
+            <tr v-for="item in outOfStockItems" :key="item.id" @click="editItem(item.id)">
+              <td>{{ item.id }}</td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.stock }}</td>
+              <td>RM {{ item.price.toFixed(2) }}</td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr>
+              <td style="text-align: center;" colspan="4">No item to display</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <table id="all" class="item-list">
+        <caption>Senarai Semua Barang</caption>
+        <thead>
+          <tr>
+            <th>Barcode</th>
+            <th style="width: 60%;">Nama Barang</th>
+            <th style="width: 15%;">Stock</th>
+            <th style="width: 15%;">Harga(RM)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="filteredItems.length > 0">
+            <tr v-for="item in filteredItems" :key="item.id" @click="editItem(item.id)">
+              <td>{{ item.id }}</td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.stock }}</td>
+              <td>RM {{ item.price.toFixed(2) }}</td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr>
+              <td style="text-align: center;" colspan="4">No item to display</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <div @click="closeEditStockModal" v-if="showEditStockModal" class="modal-background">
+        <div @click.stop class="modal">
+          <div class="modal-header">
+            <p><strong>Edit Stock</strong></p>
+            <p @click="closeEditStockModal" class="close-modal-btn">x</p>
+          </div>
+          <div class="modal-body">
+            <div class="checkout-input">
+              <div style="width: 65%;">
+                <span>Barcode: </span><input type="text" placeholder="Barcode" :value="getSelectedStockItem.id">
+              </div>
+              <div style="width: 30%;">
+                <span>Bilangan: </span><input ref="selectedItemAmount" type="number" placeholder="Bilangan" :value="getSelectedStockItem.stock">
+              </div>
+            </div>
+            <div class="checkout-input">
+              <div style="width: 65%;">
+                <span>Nama: </span><input ref="selectedItemName" type="text" placeholder="Nama" :value="getSelectedStockItem.name">
+              </div>
+              <div style="width: 30%;">
+                <span>Harga(RM): </span><input ref="selectedItemPrice" type="number" placeholder="RM0.00" :value="getSelectedStockItem.price">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer" style="justify-content: flex-end;">
+            <button @click="editStock">Update Stock</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-else-if="page === 'receipt-list'" class="main container">
+      <template v-for="day in getAllDaysShopOpen">
+        <table :key="day" class="receipt-list">
+          <caption>{{ `${day.split('_').slice(0, 3).join(' ')}, (${day.split('_')[3]})` }}</caption>
+          <thead>
+            <tr>
+              <th>ID Resit</th>
+              <th>Masa</th>
+              <th>Total(RM)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-if="!!getReceiptsForSpecificDay(day) && getReceiptsForSpecificDay(day).length > 0">
+              <tr v-for="(receipt, index) in getReceiptsForSpecificDayInReverse(day)" :key="index" @click="viewReceipt(receipt)">
+                <td>{{ receipt.id }}</td>
+                <td>{{ getFormattedTime(receipt.datetime) }}</td>
+                <td>{{ `RM${receipt.total.toFixed(2)}` }}</td>
+              </tr>
+            </template>
+            <template v-else>
+              <tr>
+                <td style="text-align: center;" colspan="3">No receipt to display</td>
+              </tr>
+            </template>
+            <tr style="font-weight: bold;">
+              <td colspan="2">Jumlah Keseluruhan:</td>
+              <td>{{ `RM${getTotalForTheDay(day).toFixed(2)}` }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+    </div>
+    <div @click="closeCheckoutModal" v-if="showCheckoutModal" class="modal-background">
+      <div @click.stop class="modal">
+        <div class="modal-header">
+          <p><strong>Checkout</strong></p>
+          <p @click="closeCheckoutModal" class="close-modal-btn">x</p>
+        </div>
+        <div class="modal-body">
+          <div class="checkout-input">
+            <div style="width: 65%;">
+              <span>Barcode: </span><input ref="itemId" @keyup.enter="addToCheckout" type="text" placeholder="Barcode">
+            </div>
+            <div style="width: 30%;">
+              <span>Bilangan: </span><input @keyup.enter="addToCheckout" ref="amount" type="number" placeholder="Bilangan">
+            </div>
+          </div>
+          <div class="checkout-input">
+            <div style="width: 65%;">
+              <span>Nama: </span><input ref="itemName" @keyup.enter="addUnlistedItemToCheckout" type="text" placeholder="Nama">
+            </div>
+            <div style="width: 30%;">
+              <span>Harga(RM): </span><input @keyup.enter="addUnlistedItemToCheckout" ref="price" type="number" placeholder="RM0.00">
+            </div>
+          </div>
+          <table>
+            <caption>Senarai Barang</caption>
+            <thead>
+              <tr>
+                <th style="width: 10%;">Barcode</th>
+                <th style="width: 60%;">Nama</th>
+                <th style="width: 15%;">Bilangan</th>
+                <th colspan="2">Jumlah(RM)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-if="getCheckoutItems.length > 0">
+                <tr v-for="(item, index) in getCheckoutItems" :key="index">
+                  <td>{{ item.id }}</td>
+                  <td>{{ item.name }}</td>
+                  <template v-if="item.id !== '-'">
+                    <td style="width: 15%;"><input type="number" v-model.number="item.stock"></td>
+                    <td style="width: 15%;">{{ getTotal(item).toFixed(2).toString() }}</td>
+                  </template>
+                  <template v-else>
+                    <td>{{ item.stock }}</td>
+                    <td style="width: 15%;"><input type="number" v-model.number="item.price"></td>
+                  </template>
+                  <td style="color:red; text-align: center; cursor: pointer;" @click="removeCheckoutItem(index)">x</td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr>
+                  <td style="text-align: center;" colspan="5">No items</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <p><strong>{{ `Total: RM ${getAbsoluteTotal().toFixed(2).toString()}` }}</strong></p>
+          <button @click="checkout">Checkout</button>
+        </div>
+      </div>
+    </div>
+    <div @click="closeAddStockModal" v-if="showAddStockModal" class="modal-background">
+      <div @click.stop class="modal">
+        <div class="modal-header">
+          <p><strong>Tambah Stock</strong></p>
+          <p @click="closeAddStockModal" class="close-modal-btn">x</p>
+        </div>
+        <div class="modal-body">
+          <div class="checkout-input">
+            <div style="width: 65%;">
+              <span>Barcode: </span><input ref="newItemId" @keyup.enter="addToNewStock" type="text" placeholder="Barcode">
+            </div>
+            <div style="width: 30%;">
+              <span>Bilangan: </span><input @keyup.enter="addToNewStock" ref="newItemAmount" type="number" placeholder="Bilangan">
+            </div>
+          </div>
+          <div class="checkout-input">
+            <div style="width: 65%;">
+              <span>Nama: </span><input ref="newItemName" @keyup.enter="addToNewStock" type="text" placeholder="Nama">
+            </div>
+            <div style="width: 30%;">
+              <span>Harga(RM): </span><input @keyup.enter="addToNewStock" ref="newItemPrice" type="number" placeholder="RM0.00">
+            </div>
+          </div>
+          <table>
+            <caption>Senarai Barang</caption>
+            <thead>
+              <tr>
+                <th style="width: 10%;">Barcode</th>
+                <th style="width: 60%;">Nama</th>
+                <th style="width: 15%;">Bilangan</th>
+                <th colspan="2">Harga(RM)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-if="getNewStockItems.length > 0">
+                <tr v-for="(item, index) in getNewStockItems" :key="index">
+                  <td>{{ item.id }}</td>
+                  <td>{{ item.name }}</td>
+                  <td style="width: 15%;"><input type="number" v-model.number="item.stock"></td>
+                  <td style="width: 15%;"><input type="number" v-model.number="item.price"></td>
+                  <td style="color:red; text-align: center; cursor: pointer;" @click="removeNewStockItem(index)">x</td>
+                </tr>
+              </template>
+              <template v-else>
+                <tr>
+                  <td style="text-align: center;" colspan="5">No items</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer" style="justify-content: flex-end;">
+          <button @click="addStock">Tambah Stock</button>
+        </div>
+      </div>
+    </div>
+    <div @click="closeReceiptModal" v-if="showReceiptModal && viewedReceipt !== {}" class="modal-background">
+      <div @click.stop class="modal">
+        <div class="modal-header">
+          <p><strong>Summary</strong></p>
+          <p @click="closeReceiptModal" class="close-modal-btn">x</p>
+        </div>
+        <div class="modal-body">
+          <div class="receipt-header">
+            <p>{{ viewedReceipt.id }}</p>
+            <p>{{ `${getFormattedDate(viewedReceipt.datetime).split('_').slice(0, 3).join(' ')}, (${getFormattedDate(viewedReceipt.datetime).split('_')[3]}) | ${getFormattedTime(viewedReceipt.datetime)}` }}</p>
+          </div>
+          <table>
+            <caption>Senarai Barang</caption>
+            <thead>
+              <tr>
+                <th style="width: 25%;">Barcode</th>
+                <th style="width: 45%;">Nama</th>
+                <th style="width: 15%;">Bilangan</th>
+                <th style="width: 15%;">Jumlah(RM)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in viewedReceipt.items" :key="index">
+                <td>{{ `ID: ${item.id}` }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ getTotal(item).toFixed(2).toString() }}</td>
+                <td>{{ item.stock }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer" style="justify-content: flex-end;">
+          <p><strong>{{ `Total RM ${viewedReceipt.total.toFixed(2).toString()}` }}</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
