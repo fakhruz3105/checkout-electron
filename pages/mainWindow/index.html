@@ -13,7 +13,7 @@
       <div class="container nav">
         <div class="logo">
           <img src="shop.png" alt="shop-logo">
-          <p>Kedai Maci Ayang</p>
+          <p>Kedai Paci Raman</p>
         </div>
         <ul class="nav-list">
           <li class="nav-item">
@@ -26,7 +26,7 @@
               <a @click="page = 'stock-list'">Senarai Stock</a>
           </li>
           <li class="nav-item">
-            <a @click="page = 'receipt-list'">Senarai Resit</a>
+            <a @click="() => { page = 'receipt-list'; showAllReceipt = false }">Senarai Resit</a>
           </li>
         </ul>
       </div>
@@ -116,9 +116,10 @@
         </div>
       </div>
     </div>
-    <div v-else-if="page === 'receipt-list'" class="main container">
+    <div id="receipt-list-div" v-else-if="page === 'receipt-list'" class="main container" :style="{ overflow: showAllReceipt ? 'auto' : 'hidden' }">
+      <input v-model="search" id="search" type="text" placeholder="Search">
       <template v-for="day in getAllDaysShopOpen">
-        <table :key="day" class="receipt-list">
+        <table :key="day" class="receipt-list" v-if="getReceiptsForSpecificDay(day).length > 0">
           <caption>{{ `${day.split('_').slice(0, 3).join(' ')}, (${day.split('_')[3]})` }}</caption>
           <thead>
             <tr>
@@ -135,11 +136,6 @@
                 <td>{{ `RM${receipt.total.toFixed(2)}` }}</td>
               </tr>
             </template>
-            <template v-else>
-              <tr>
-                <td style="text-align: center;" colspan="3">No receipt to display</td>
-              </tr>
-            </template>
             <tr style="font-weight: bold;">
               <td colspan="2">Jumlah Keseluruhan:</td>
               <td>{{ `RM${getTotalForTheDay(day).toFixed(2)}` }}</td>
@@ -147,6 +143,9 @@
           </tbody>
         </table>
       </template>
+      <div v-if="!showAllReceipt" class="gradient-cover">
+        <button @click="showAllReceipt = true">Buka Semua</button>
+      </div>
     </div>
     <div @click="closeCheckoutModal" v-if="showCheckoutModal" class="modal-background">
       <div @click.stop class="modal">
@@ -218,49 +217,27 @@
           <p @click="closeAddStockModal" class="close-modal-btn">x</p>
         </div>
         <div class="modal-body">
-          <div class="checkout-input">
-            <div style="width: 65%;">
-              <span>Barcode: </span><input ref="newItemId" @keyup.enter="addToNewStock" type="text" placeholder="Barcode">
-            </div>
-            <div style="width: 30%;">
-              <span>Bilangan: </span><input @keyup.enter="addToNewStock" ref="newItemAmount" type="number" placeholder="Bilangan">
-            </div>
-          </div>
-          <div class="checkout-input">
-            <div style="width: 65%;">
-              <span>Nama: </span><input ref="newItemName" @keyup.enter="addToNewStock" type="text" placeholder="Nama">
-            </div>
-            <div style="width: 30%;">
-              <span>Harga(RM): </span><input @keyup.enter="addToNewStock" ref="newItemPrice" type="number" placeholder="RM0.00">
-            </div>
-          </div>
           <table>
             <caption>Senarai Barang</caption>
             <thead>
               <tr>
-                <th style="width: 10%;">Barcode</th>
-                <th style="width: 60%;">Nama</th>
-                <th style="width: 15%;">Bilangan</th>
+                <th>Barcode</th>
+                <th>Nama</th>
+                <th>Bilangan</th>
                 <th colspan="2">Harga(RM)</th>
               </tr>
             </thead>
             <tbody>
-              <template v-if="getNewStockItems.length > 0">
-                <tr v-for="(item, index) in getNewStockItems" :key="index">
-                  <td>{{ item.id }}</td>
-                  <td>{{ item.name }}</td>
-                  <td style="width: 15%;"><input type="number" v-model.number="item.stock"></td>
-                  <td style="width: 15%;"><input type="number" v-model.number="item.price"></td>
-                  <td style="color:red; text-align: center; cursor: pointer;" @click="removeNewStockItem(index)">x</td>
-                </tr>
-              </template>
-              <template v-else>
-                <tr>
-                  <td style="text-align: center;" colspan="5">No items</td>
-                </tr>
-              </template>
+              <tr v-for="(item, index) in newStockItems" :key="index">
+                <td><input @blur="checkIfItemIsInStock(index)" type="text" v-model.number="item.id"></td>
+                <td style="width: 50%;"><input type="text" v-model.number="item.name"></td>
+                <td style="width: 15%;"><input type="number" v-model.number="item.stock"></td>
+                <td style="width: 15%;"><input type="number" v-model.number="item.price"></td>
+                <td style="color:red; text-align: center; cursor: pointer;" @click="removeNewStockItem(index)">x</td>
+              </tr>
             </tbody>
           </table>
+          <button style="margin-top: 10px; float: right;" @click="addToNewStock">Tambah Barang</button>
         </div>
         <div class="modal-footer" style="justify-content: flex-end;">
           <button @click="addStock">Tambah Stock</button>

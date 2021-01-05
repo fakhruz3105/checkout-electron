@@ -13,7 +13,8 @@ const app = new Vue({
     showCheckoutModal: false,
     showAddStockModal: false,
     showEditStockModal: false,
-    showReceiptModal: false
+    showReceiptModal: false,
+    showAllReceipt: false
   },
   computed: {
     outOfStockItems () {
@@ -79,7 +80,7 @@ const app = new Vue({
       return `${dayDate}_${month}_${year}_${day}`;
     },
     getReceiptsForSpecificDay (formattedDate) {
-      return this.customers[formattedDate];
+      return this.customers[formattedDate].filter(customer => customer.id.includes(this.search));
     },
     getReceiptsForSpecificDayInReverse (formattedDate) {
       const receiptsInReverse = [...this.getReceiptsForSpecificDay(formattedDate)];
@@ -223,14 +224,18 @@ const app = new Vue({
       }
     },
     async openAddStockModal () {
-      this.newStockItems = [];
+      this.newStockItems = [{
+        id: '',
+        name: '',
+        stock: 0,
+        price: 0
+      }];
       this.showAddStockModal = true;
       await new Promise((resolve) => {
         setTimeout(() => {
           resolve();
         }, 200);
       });
-      this.$refs.newItemId.focus();
     },
     closeAddStockModal () {
       if (this.newStockItems.length === 0) {
@@ -241,61 +246,36 @@ const app = new Vue({
         }
       }
     },
-    addToNewStock () {
-      const newItemId = this.$refs.newItemId.value;
-      const newItemAmount = +this.$refs.newItemAmount.value;
-      const newItemName = this.$refs.newItemName.value;
-      const newItemPrice = +this.$refs.newItemPrice.value;
-
-      const itemInNewItemList = this.newStockItems.filter(item => item.id == newItemId)[0];
-      if (itemInNewItemList) {
-        if (
-          !!newItemId && !!newItemAmount &&
-          newItemId !== '' && newItemAmount !== 0
-        ) { 
-          this.newStockItems.forEach(item => {
-            if (item.id == newItemId) {
-              item.stock += newItemAmount;
-              if (!!newItemPrice && newItemPrice !== 0) {
-                item.price = newItemPrice
-              }
-              this.$refs.newItemId.value = null;
-              this.$refs.newItemAmount.value = null;
-              this.$refs.newItemName.value = null;
-              this.$refs.newItemPrice.value = null;
-              this.$refs.newItemId.focus();
-            }
-          });
-        }
-      } else {
-        if (
-          !!newItemId && !!newItemAmount && !!newItemName && !!newItemPrice &&
-          newItemId !== '' && newItemAmount !== 0 && newItemName !== '' && newItemPrice !== 0
-        ) {
-          this.newStockItems.push({
-            id: newItemId,
-            name: newItemName,
-            stock: newItemAmount,
-            price: newItemPrice
-          });
-          this.$refs.newItemId.value = null;
-          this.$refs.newItemAmount.value = null;
-          this.$refs.newItemName.value = null;
-          this.$refs.newItemPrice.value = null;
-          this.$refs.newItemId.focus();
-        }
+    checkIfItemIsInStock (index) {
+      const itemId = this.newStockItems[index].id;
+      const item = this.items.filter(item => item.id == itemId)[0];
+      if (item) {
+        this.newStockItems[index].name = item.name;
+        this.newStockItems[index].price = item.price;
       }
+    },
+    addToNewStock () {
+      this.newStockItems.push({
+        id: '',
+        name: '',
+        stock: 0,
+        price: 0
+      });
     },
     removeNewStockItem (index) {
       this.newStockItems.splice(index, 1);
     },
     addStock () {
       if (confirm('Teruskan?')) {
-        if (this.newStockItems.length > 0) {
-          ipcRenderer.send('item:addAll', this.newStockItems);
-          this.fetchAll();
-          this.showAddStockModal = false;
+        for (const item of this.newStockItems) {
+          if (!item.id || !item.name || !item.stock || !item.price || item.id == '' || item.name == '') {
+            alert('Sila isi semua tempat!');
+            return;
+          }
         }
+        ipcRenderer.send('item:addAll', this.newStockItems);
+        this.fetchAll();
+        this.showAddStockModal = false;
       }
     },
     closeEditStockModal () {

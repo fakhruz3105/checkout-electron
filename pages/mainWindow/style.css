@@ -141,6 +141,11 @@ li a:hover {
   margin-bottom: 10px;
 }
 
+#receipt-list-div {
+  overflow: hidden;
+  height: calc(100vh - 100px);
+}
+
 .receipt-list {
   table-layout: fixed;
 }
@@ -152,4 +157,17 @@ li a:hover {
 
 .receipt-list tbody tr:hover {
   cursor: pointer;
+}
+
+.gradient-cover {
+  z-index: 20;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(to bottom,  rgba(137,255,241,0) 0%,rgba(0,0,0,0.8) 100%);
 }
