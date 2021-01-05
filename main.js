@@ -6,6 +6,8 @@ const { Menu } = require('electron');
 
 const { app, BrowserWindow, ipcMain } = electron;
 
+process.env.NODE_ENV = 'production';
+
 let mainWindow;
 let checkoutWindow;
 let stockWindow;
@@ -23,6 +25,10 @@ app.on('ready', () => {
     store.set('items', []);
   }
 
+  if (!store.get('customers')) {
+    store.set('customers', {});
+  }
+
   const todayDate = dateConverter(new Date());
   const allCustomers = store.get('customers');
   const todaysCustomer = allCustomers[todayDate];
@@ -36,8 +42,6 @@ app.on('ready', () => {
 
     store.set('customers', updatedAllCustomers);
   }
-
-  // store.set('customers', {});
 
   mainWindow = new BrowserWindow({
     webPreferences: {

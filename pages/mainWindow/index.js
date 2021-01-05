@@ -46,10 +46,17 @@ const app = new Vue({
       }
     },
     getAllDaysShopOpen () {
-      return Object.keys(this.customers);
+      return Object.keys(this.customers).reverse();
     }
   },
   methods: {
+    closeAnyModal () {
+      console.log('object');
+      this.showEditStockModal = false;
+      this.showReceiptModal = false;
+      this.showCheckoutModal = false;
+      this.showAddStockModal = false;
+    },
     viewReceipt (receipt) {
       this.viewedReceipt = receipt;
       this.showReceiptModal = true;
@@ -169,13 +176,17 @@ const app = new Vue({
       await new Promise((resolve) => {
         setTimeout(() => {
           resolve();
-        }, 500);
+        }, 200);
       });
       this.$refs.itemId.focus();
     },
     closeCheckoutModal () {
-      if (confirm('Tutup checkout?')) {
+      if (this.checkoutItems.length === 0) {
         this.showCheckoutModal = false;
+      } else {
+        if (confirm('Tutup checkout?')) {
+          this.showCheckoutModal = false;
+        }
       }
     },
     removeCheckoutItem (index) {
@@ -203,7 +214,7 @@ const app = new Vue({
           await new Promise((resolve) => {
             setTimeout(() => {
               resolve();
-            }, 500);
+            }, 200);
           });
           this.showCheckoutModal = false;
           this.viewedReceipt = this.getLastReceipt;
@@ -217,13 +228,17 @@ const app = new Vue({
       await new Promise((resolve) => {
         setTimeout(() => {
           resolve();
-        }, 500);
+        }, 200);
       });
       this.$refs.newItemId.focus();
     },
     closeAddStockModal () {
-      if (confirm('Tutup tambah stock?')) {
+      if (this.newStockItems.length === 0) {
         this.showAddStockModal = false
+      } else {
+        if (confirm('Tutup tambah stock?')) {
+          this.showAddStockModal = false
+        }
       }
     },
     addToNewStock () {
@@ -304,6 +319,14 @@ const app = new Vue({
         this.showEditStockModal = false;
       }
     },
+    deleteStock () {
+      if (confirm('Teruskan?')) { 
+        this.items = this.items.filter(item => item.id != this.selectedItemId);
+        ipcRenderer.send('item:update', this.items);
+        this.fetchAll();
+        this.showEditStockModal = false;
+      }
+    },
     openReceiptModal () {
       this.showReceiptModal = true;
     },
@@ -322,5 +345,10 @@ const app = new Vue({
   beforeMount () {
     this.fetchAll();
     this.fetchAllCustomers();
+  },
+  mounted () {
+    this.$el.addEventListener('keyup', (e) => {
+      console.log('object');
+    });
   }
 }).$mount('#app');

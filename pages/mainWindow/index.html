@@ -8,7 +8,7 @@
   <script src="index.js" defer></script>
 </head>
 <body>
-  <div id="app">
+  <div @keyup.esc="closeAnyModal" id="app">
     <header>
       <div class="container nav">
         <div class="logo">
@@ -29,7 +29,7 @@
             <a @click="page = 'receipt-list'">Senarai Resit</a>
           </li>
         </ul>
-    </div>
+      </div>
     </header>
     <div v-if="page === 'stock-list'" class="main container">
       <input v-model="search" id="search" type="text" placeholder="Search">
@@ -37,8 +37,8 @@
         <caption>Kehabisan Stock</caption>
         <thead>
           <tr>
-            <th>Barcode</th>
-            <th style="width: 60%;">Nama Barang</th>
+            <th style="width: 25%;">Barcode</th>
+            <th style="width: 45%;">Nama Barang</th>
             <th style="width: 15%;">Stock</th>
             <th style="width: 15%;">Harga(RM)</th>
           </tr>
@@ -63,8 +63,8 @@
         <caption>Senarai Semua Barang</caption>
         <thead>
           <tr>
-            <th>Barcode</th>
-            <th style="width: 60%;">Nama Barang</th>
+            <th style="width: 25%;">Barcode</th>
+            <th style="width: 45%;">Nama Barang</th>
             <th style="width: 15%;">Stock</th>
             <th style="width: 15%;">Harga(RM)</th>
           </tr>
@@ -94,7 +94,7 @@
           <div class="modal-body">
             <div class="checkout-input">
               <div style="width: 65%;">
-                <span>Barcode: </span><input type="text" placeholder="Barcode" :value="getSelectedStockItem.id">
+                <span>Barcode: </span><input type="text" placeholder="Barcode" :value="getSelectedStockItem.id" disabled>
               </div>
               <div style="width: 30%;">
                 <span>Bilangan: </span><input ref="selectedItemAmount" type="number" placeholder="Bilangan" :value="getSelectedStockItem.stock">
@@ -110,6 +110,7 @@
             </div>
           </div>
           <div class="modal-footer" style="justify-content: flex-end;">
+            <button style="margin-right: 10px;" class="warning-btn" @click="deleteStock">Delete</button>
             <button @click="editStock">Update Stock</button>
           </div>
         </div>
@@ -274,8 +275,11 @@
         </div>
         <div class="modal-body">
           <div class="receipt-header">
-            <p>{{ viewedReceipt.id }}</p>
-            <p>{{ `${getFormattedDate(viewedReceipt.datetime).split('_').slice(0, 3).join(' ')}, (${getFormattedDate(viewedReceipt.datetime).split('_')[3]}) | ${getFormattedTime(viewedReceipt.datetime)}` }}</p>
+            <p><strong>ID Resit: </strong>{{ viewedReceipt.id }}</p>
+            <div>
+              <p><strong>Tarikh: </strong>{{ `${getFormattedDate(viewedReceipt.datetime).split('_').slice(0, 3).join(' ')}, (${getFormattedDate(viewedReceipt.datetime).split('_')[3]}) ` }}</p>
+              <p><strong>Masa: </strong> {{` ${getFormattedTime(viewedReceipt.datetime)}` }}</p>
+            </div>
           </div>
           <table>
             <caption>Senarai Barang</caption>
