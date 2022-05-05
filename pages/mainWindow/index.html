@@ -13,7 +13,7 @@
       <div class="container nav">
         <div class="logo">
           <img src="shop.png" alt="shop-logo">
-          <p>Kedai Paci Raman</p>
+          <p>Kedai Udin</p>
         </div>
         <ul class="nav-list">
           <li class="nav-item">
@@ -32,9 +32,9 @@
       </div>
     </header>
     <div v-if="page === 'stock-list'" class="main container">
-      <input v-model="search" id="search" type="text" placeholder="Search">
+      <input v-model="search" id="search" type="search" placeholder="Search">
       <table id="outStock" class="item-list">
-        <caption>Kehabisan Stock</caption>
+        <caption><span>Kehabisan Stock</span><button style="margin-left: 1rem;" @click="generateOutOfStockListPdf">Print</button></caption>
         <thead>
           <tr>
             <th style="width: 25%;">Barcode</th>
@@ -54,13 +54,13 @@
           </template>
           <template v-else>
             <tr>
-              <td style="text-align: center;" colspan="4">No item to display</td>
+              <td style="text-align: center;" colspan="4">-- NONE --</td>
             </tr>
           </template>
         </tbody>
       </table>
       <table id="all" class="item-list">
-        <caption>Senarai Semua Barang</caption>
+        <caption><span>Senarai Semua</span><button style="margin-left: 1rem;" @click="generateAllStockListPdf">Print</button></caption>
         <thead>
           <tr>
             <th style="width: 25%;">Barcode</th>
@@ -80,7 +80,7 @@
           </template>
           <template v-else>
             <tr>
-              <td style="text-align: center;" colspan="4">No item to display</td>
+              <td style="text-align: center;" colspan="4">-- NONE --</td>
             </tr>
           </template>
         </tbody>
@@ -117,7 +117,7 @@
       </div>
     </div>
     <div id="receipt-list-div" v-else-if="page === 'receipt-list'" class="main container" :style="{ overflow: showAllReceipt ? 'auto' : 'hidden' }">
-      <input v-model="search" id="search" type="text" placeholder="Search">
+      <input v-model="search" id="search" type="search" placeholder="Search">
       <template v-for="day in getAllDaysShopOpen">
         <table :key="day" class="receipt-list" v-if="getReceiptsForSpecificDay(day).length > 0">
           <caption>{{ `${day.split('_').slice(0, 3).join(' ')}, (${day.split('_')[3]})` }}</caption>
@@ -229,10 +229,10 @@
             </thead>
             <tbody>
               <tr v-for="(item, index) in newStockItems" :key="index">
-                <td><input @blur="checkIfItemIsInStock(index)" type="text" v-model.number="item.id"></td>
+                <td><input @blur="checkIfItemIsInStock(index)" type="text" v-model="item.id"></td>
                 <td style="width: 50%;"><input type="text" v-model.number="item.name"></td>
                 <td style="width: 15%;"><input type="number" v-model.number="item.stock"></td>
-                <td style="width: 15%;"><input type="number" v-model.number="item.price"></td>
+                <td style="width: 15%;"><input type="number" @blur="setPrice($event.target.value, index)"></td>
                 <td style="color:red; text-align: center; cursor: pointer;" @click="removeNewStockItem(index)">x</td>
               </tr>
             </tbody>
@@ -247,7 +247,7 @@
     <div @click="closeReceiptModal" v-if="showReceiptModal && viewedReceipt !== {}" class="modal-background">
       <div @click.stop class="modal">
         <div class="modal-header">
-          <p><strong>Summary</strong></p>
+          <p><strong>Summary</strong><button style="margin-left: 1rem;" @click="generateReceipt">Print</button></p>
           <p @click="closeReceiptModal" class="close-modal-btn">x</p>
         </div>
         <div class="modal-body">

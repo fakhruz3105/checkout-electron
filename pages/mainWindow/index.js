@@ -51,8 +51,15 @@ const app = new Vue({
     }
   },
   methods: {
+    setPrice (val, index) {
+      console.log(val)
+      console.log(index)
+      this.newStockItems[index].price = parseInt(val) * 100
+    },
+    getPrice (val) {
+      return ((val || 0) * 100).toFixed(2)
+    },
     closeAnyModal () {
-      console.log('object');
       this.showEditStockModal = false;
       this.showReceiptModal = false;
       this.showCheckoutModal = false;
@@ -100,21 +107,20 @@ const app = new Vue({
       customersForTheDay.forEach(receipt => total += receipt.total);
       return total;
     },
+    generateOutOfStockListPdf () {
+      if (this.outOfStockItems.length > 0) ipcRenderer.send('item:generateStockListPdf', 'Senarai Kehabisan Stock', this.outOfStockItems)
+    },
+    generateAllStockListPdf () {
+      if (this.items.length > 0) ipcRenderer.send('item:generateStockListPdf', 'Senarai Stock', this.items)
+    },
+    generateReceipt () {
+      if (this.viewedReceipt) ipcRenderer.send('customer:receipt', this.viewedReceipt)
+    },
     fetchAll () {
       ipcRenderer.send('item:fetchAll');
     },
     fetchAllCustomers () {
       ipcRenderer.send('customer:fetchAll');
-    },
-    addItems (item) {
-      ipcRenderer.send('item:addAll', [
-        {
-          id: 111,
-          name: 'Test 2',
-          stock: 14,
-          price: 2.35
-        }
-      ]);
     },
     editItem (id) {
       this.selectedItemId = id;
@@ -180,6 +186,7 @@ const app = new Vue({
         }, 200);
       });
       this.$refs.itemId.focus();
+      ipcRenderer.send('window:checkout')
     },
     closeCheckoutModal () {
       if (this.checkoutItems.length === 0) {
@@ -253,6 +260,7 @@ const app = new Vue({
         this.newStockItems[index].name = item.name;
         this.newStockItems[index].price = item.price;
       }
+      this.addToNewStock()
     },
     addToNewStock () {
       this.newStockItems.push({
@@ -267,13 +275,17 @@ const app = new Vue({
     },
     addStock () {
       if (confirm('Teruskan?')) {
-        for (const item of this.newStockItems) {
+        const listToBeAdded = this.newStockItems.filter(item => {
+          return !(!item.id && !item.name && !item.stock && !item.price && item.id == '' && item.name == '')
+        })
+
+        for (const item of listToBeAdded) {
           if (!item.id || !item.name || !item.stock || !item.price || item.id == '' || item.name == '') {
             alert('Sila isi semua tempat!');
             return;
           }
         }
-        ipcRenderer.send('item:addAll', this.newStockItems);
+        ipcRenderer.send('item:addAll', listToBeAdded);
         this.fetchAll();
         this.showAddStockModal = false;
       }
@@ -321,14 +333,23 @@ const app = new Vue({
     ipcRenderer.on('customer:fetchAll', (e, customers) => {
       this.customers = customers;
     });
+    ipcRenderer.on('item:generateStockListPdf', (e, success, filePath) => {
+      if (!success) {
+        alert('Error on generating pdf') 
+      }
+      ipcRenderer.send('folder:open', filePath)
+    });
+    ipcRenderer.on('customer:receipt', (e, success, filePath) => {
+      if (!success) {
+        alert('Error on generating receipt') 
+      }
+      ipcRenderer.send('folder:open', filePath)
+    });
   },
   beforeMount () {
     this.fetchAll();
     this.fetchAllCustomers();
   },
   mounted () {
-    this.$el.addEventListener('keyup', (e) => {
-      console.log('object');
-    });
   }
 }).$mount('#app');

@@ -63,7 +63,8 @@ button:hover {
 }
 
 input[type=text],
-input[type=number] {
+input[type=number],
+input[type=search] {
   width: 100%;
   min-width: 100px;
   padding: 5px;
@@ -72,7 +73,8 @@ input[type=number] {
 }
 
 input[type=text]:focus,
-input[type=number]:focus {
+input[type=number]:focus,
+input[type=search]:focus {
   outline: none;
   box-shadow: 0 0 5px grey;
 }

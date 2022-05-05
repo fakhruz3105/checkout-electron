@@ -3,8 +3,11 @@ const url = require('url');
 const path = require('path');
 const Store = require('./store');
 const { Menu } = require('electron');
+const ejs = require('ejs');
+const puppeteer = require('puppeteer');
+const fs = require('fs');
 
-const { app, BrowserWindow, ipcMain } = electron;
+const { app, BrowserWindow, ipcMain, shell } = electron;
 
 process.env.NODE_ENV = 'production';
 
@@ -18,6 +21,164 @@ const store = new Store({
     items: []
   }
 });
+
+function getFormattedTime (timestamp) {
+  const date = new Date(timestamp);
+  const hours = date.getHours();
+  const min = date.getMinutes();
+  const sec = ('0' + date.getSeconds()).slice(-2);
+  return `${hours}:${min}:${sec}`;
+}
+
+function getFormattedDate (timestamp) {
+  const dayName = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jummat', 'Sabtu'];
+  const monthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const date = new Date(timestamp);
+  const day = dayName[date.getDay()];
+  const month = monthName[date.getMonth()];
+  const dayDate = ('0' + date.getDate().toString()).slice(-2);
+  const year = date.getFullYear();
+  return `${dayDate} ${month} ${year}`;
+}
+
+function getCurrentDate () {
+  const date = new Date()
+  return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`
+}
+
+async function ejsToPdfBuffer (browser, option, templateData) {
+  const ejsTemplate = option.templateName
+  const landscape = option.landscape ?? false
+  const data = await new Promise((resolve, reject) => {
+    ejs.renderFile(`./ejs-template/${ejsTemplate}.ejs`, templateData, (err, _data) => {
+      if (err)
+        reject(err)
+      resolve(_data)
+    })
+  })
+
+  const page = await browser.newPage()
+
+  await page.setContent(data, {
+    waitUntil: 'domcontentloaded'
+  })
+
+  const pdfBuffer = await page.pdf({
+    format: 'a4',
+    landscape,
+    margin: {
+      top: '19mm',
+      right: '19mm',
+      bottom: '19mm',
+      left: '19mm'
+    }
+  })
+
+  await page.close()
+
+  return pdfBuffer
+}
+
+
+async function generatePdf (templateName, data) {
+  const date = getCurrentDate()
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-gpu'
+    ]
+  })
+
+  let pdfBuffers
+
+  try {
+    // use promise all to make other options pages can run in parallel
+    pdfBuffers = await ejsToPdfBuffer(browser, { templateName }, { ...data, date })
+  } catch (err) {
+    throw err
+  } finally {
+    await browser.close()
+  }
+
+  const filePath = path.join('/home/udin/Downloads', `${data.title}-${date}.pdf`)
+
+  fs.writeFileSync(filePath, pdfBuffers)
+
+  return filePath
+}
+
+async function generateStockListPdf (title, list) {
+  return await generatePdf('senarai-stock', { list, title })
+}
+
+const createMainWindow = () => {
+  mainWindow = new BrowserWindow({
+    webPreferences: {
+      nodeIntegration: true
+    }
+  });
+  
+  mainWindow.loadURL(url.format({
+    pathname: path.join(__dirname, '/pages/mainWindow/index.html'),
+    protocol: 'file:',
+    slashes: true
+  }));
+
+  mainWindow.maximize();
+
+  mainWindow.on('close', () => {
+    app.quit();
+  });
+
+  mainWindow.on('focus', () => {
+    Menu.setApplicationMenu(Menu.buildFromTemplate(mainWindowMenu));
+  });
+}
+
+const createCheckoutWindow = () => {
+  checkoutWindow = new BrowserWindow({
+    webPreferences: {
+      nodeIntegration: true
+    }
+  });
+
+  checkoutWindow.loadURL(url.format({
+    pathname: path.join(__dirname, '/pages/checkoutWindow/index.html'),
+    protocol: 'file:',
+    slashes: true
+  }));
+
+  checkoutWindow.maximize()
+
+  checkoutWindow.on('close', () => {
+    checkoutWindow = null;
+  });
+
+  checkoutWindow.on('focus', () => {
+    Menu.setApplicationMenu(Menu.buildFromTemplate(checkoutWindowMenu));
+  });
+};
+
+
+
+// const createStockWindow = () => {
+//   stockWindow = new BrowserWindow({});
+//   stockWindow.loadURL(url.format({
+//     pathname: path.join(__dirname, '/pages/stockWindow/index.html'),
+//     protocol: 'file:',
+//     slashes: true
+//   }));
+
+//   stockWindow.on('close', () => {
+//     stockWindow = null;
+//   });
+
+//   stockWindow.on('focus', () => {
+//     Menu.setApplicationMenu(Menu.buildFromTemplate(stockWindowMenu));
+//   });
+// };
 
 app.on('ready', () => {
 
@@ -43,64 +204,28 @@ app.on('ready', () => {
     store.set('customers', updatedAllCustomers);
   }
 
-  mainWindow = new BrowserWindow({
-    webPreferences: {
-      nodeIntegration: true
-    }
-  });
-  mainWindow.loadURL(url.format({
-    pathname: path.join(__dirname, '/pages/mainWindow/index.html'),
-    protocol: 'file:',
-    slashes: true
-  }));
-
-  mainWindow.maximize();
-
-  mainWindow.on('close', () => {
-    app.quit();
-  });
-
-  mainWindow.on('focus', () => {
-    Menu.setApplicationMenu(Menu.buildFromTemplate(mainWindowMenu));
-  });
+  createMainWindow()
+  createCheckoutWindow()
 });
 
-const createCheckoutWindow = () => {
-  checkoutWindow = new BrowserWindow({});
-  checkoutWindow.loadURL(url.format({
-    pathname: path.join(__dirname, '/pages/checkoutWindow/index.html'),
-    protocol: 'file:',
-    slashes: true
-  }));
+ipcMain.on('item:generateStockListPdf', async (e, title, items) => {
+  try {
+    const filePath = await generateStockListPdf(title, items)
+    mainWindow.webContents.send('item:generateStockListPdf', true, filePath);
+    checkoutWindow?.webContents.send('item:generateStockListPdf', true, filePath);
+  } catch (error) {
+    mainWindow.webContents.send('item:generateStockListPdf', false);
+    checkoutWindow?.webContents.send('item:generateStockListPdf', false);
+  }
+});
 
-  checkoutWindow.on('close', () => {
-    checkoutWindow = null;
-  });
-
-  checkoutWindow.on('focus', () => {
-    Menu.setApplicationMenu(Menu.buildFromTemplate(checkoutWindowMenu));
-  });
-};
-
-const createStockWindow = () => {
-  stockWindow = new BrowserWindow({});
-  stockWindow.loadURL(url.format({
-    pathname: path.join(__dirname, '/pages/stockWindow/index.html'),
-    protocol: 'file:',
-    slashes: true
-  }));
-
-  stockWindow.on('close', () => {
-    stockWindow = null;
-  });
-
-  stockWindow.on('focus', () => {
-    Menu.setApplicationMenu(Menu.buildFromTemplate(stockWindowMenu));
-  });
-};
+ipcMain.on('folder:open', async (e, path) => {
+  shell.openPath(path)
+});
 
 ipcMain.on('item:fetchAll', () => {
   mainWindow.webContents.send('item:fetchAll', store.get('items'));
+  checkoutWindow?.webContents.send('item:fetchAll', store.get('items'));
 });
 
 ipcMain.on('item:addAll', (e, items) => {
@@ -179,6 +304,22 @@ ipcMain.on('customer:new', (e, newCustomer) => {
 ipcMain.on('customer:fetchAll', () => {
   const customers = store.get('customers');
   mainWindow.webContents.send('customer:fetchAll', customers);
+  checkoutWindow?.webContents.send('customer:fetchAll', customers);
+});
+
+async function generateReceipt (customer) {
+  return await generatePdf('resit', { ...customer, title: customer.id, tarikh: getFormattedDate(customer.datetime), masa: getFormattedTime(customer.datetime) })
+}
+
+ipcMain.on('customer:receipt', async (e, customer) => {
+  try {
+    const path = await generateReceipt(customer)
+    mainWindow.webContents.send('customer:receipt', true, path);
+    checkoutWindow?.webContents.send('customer:receipt', true, path);
+  } catch (error) {
+    mainWindow.webContents.send('customer:receipt', false);
+    checkoutWindow?.webContents.send('customer:receipt', false);
+  }
 });
 
 const mainWindowMenu = [

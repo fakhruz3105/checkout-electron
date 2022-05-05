@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+table {
+    width: 100%;
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+table th,
+table td {
+    padding: 5px;
+    text-align: left;
+    border: 0.5px solid grey;
+}
+</style>
+<body>
+    <table class="resit">
+        <thead>
+            <tr>
+                <th colspan="2">Kedai Udin</th>
+                <th colspan="2">Tarikh: <%= tarikh %></th>
+            <tr>
+                <th colspan="2">ID: <%= id %></th>
+                <th colspan="2">Masa: <%= masa %></th>
+            </tr>
+            </tr>
+            <tr>
+                <th colspan="3">Total:</th>
+                <th style="text-align: center;">RM <%= total.toFixed(2) %></th>
+            </tr>
+            <tr>
+                <th colspan="4">Senarai Barang</th>
+            </tr>
+            <tr>
+                <th style="width: 16%;">Barcode</th>
+                <th style="width: 52%;">Nama</th>
+                <th style="width: 16%;">Bilangan</th>
+                <th style="width: 16%;">Jumlah (RM)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <%
+                for (const item of items) {
+            %>
+                <tr>
+                    <td><%= item.id %></td>
+                    <td><%= item.name %></td>
+                    <td><%= item.stock %></td>
+                    <td style="text-align: center;"><%= item.price %></td>
+                </tr>
+            <%
+                }
+            %>
+        </tbody>
+    </table>
+</body>
+</html>

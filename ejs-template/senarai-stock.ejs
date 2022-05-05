@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+.title {
+    margin-bottom: 2rem;
+}
+
+.list table {
+    width: 100%;
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+.list table th,
+.list table td {
+    text-align: left;
+    padding: 5px;
+    border: 0.5px solid grey;
+}
+</style>
+<body>
+    <div class="title">
+        <%= title %> (<%= date %>)
+    </div>
+    <div class="list">
+        <table>
+            <tr>
+                <th>Barcode</th>
+                <th>Nama Barang</th>
+                <th>Dalam Stock</th>
+                <th>Harga (RM)</th>
+            </tr>
+            <%
+                for (const item of list) {
+            %>
+            <tr>
+
+                <td><%= item.id %></td>
+                <td><%= item.name %></td>
+                <td><%= item.stock %></td>
+                <td><%= item.price %></td>
+            </tr>
+            <%
+                }
+            %>
+        </table>
+    </div>
+</body>
+</html>
