@@ -13,12 +13,9 @@
       <div class="container nav">
         <div class="logo">
           <img src="shop.png" alt="shop-logo">
-          <p>Kedai Udin</p>
+          <p>Sayang Enterprise (AR12003043)</p>
         </div>
         <ul class="nav-list">
-          <li class="nav-item">
-            <a @click="openCheckoutModal">Checkout</a>
-          </li>
           <li class="nav-item">
             <a @click="openAddStockModal">Tambah Stock</a>
           </li>
@@ -125,7 +122,8 @@
             <tr>
               <th>ID Resit</th>
               <th>Masa</th>
-              <th>Total(RM)</th>
+              <th>Total (RM)</th>
+              <th>Profit (RM)</th>
             </tr>
           </thead>
           <tbody>
@@ -134,11 +132,13 @@
                 <td>{{ receipt.id }}</td>
                 <td>{{ getFormattedTime(receipt.datetime) }}</td>
                 <td>{{ `RM${receipt.total.toFixed(2)}` }}</td>
+                <td>{{ `RM${(receipt.profit?.toFixed(2) || '0.00')}` }}</td>
               </tr>
             </template>
             <tr style="font-weight: bold;">
               <td colspan="2">Jumlah Keseluruhan:</td>
-              <td>{{ `RM${getTotalForTheDay(day).toFixed(2)}` }}</td>
+              <td>{{ `RM${getTotalSaleForTheDay(day).toFixed(2)}` }}</td>
+              <td>{{ `RM${getTotalProfitForTheDay(day).toFixed(2)}` }}</td>
             </tr>
           </tbody>
         </table>
@@ -224,7 +224,8 @@
                 <th>Barcode</th>
                 <th>Nama</th>
                 <th>Bilangan</th>
-                <th colspan="2">Harga(RM)</th>
+                <th>Harga Jual</th>
+                <th colspan="2">Harga Beli</th>
               </tr>
             </thead>
             <tbody>
@@ -232,8 +233,9 @@
                 <td><input @blur="checkIfItemIsInStock(index)" type="text" v-model="item.id"></td>
                 <td style="width: 50%;"><input type="text" v-model.number="item.name"></td>
                 <td style="width: 15%;"><input type="number" v-model.number="item.stock"></td>
-                <td style="width: 15%;"><input type="number" @blur="setPrice($event.target.value, index)"></td>
-                <td style="color:red; text-align: center; cursor: pointer;" @click="removeNewStockItem(index)">x</td>
+                <td style="width: 15%;"><input type="number" v-model.number="item.price" placeholder="RM0.00"></td>
+                <td style="width: 15%;"><input type="number" v-model.number="item.buyPrice" placeholder="RM0.00"></td>
+                <td v-if="newStockItems.length > 1" style="color:red; text-align: center; cursor: pointer;" @click="removeNewStockItem(index)">x</td>
               </tr>
             </tbody>
           </table>

@@ -51,14 +51,6 @@ const app = new Vue({
     }
   },
   methods: {
-    setPrice (val, index) {
-      console.log(val)
-      console.log(index)
-      this.newStockItems[index].price = parseInt(val) * 100
-    },
-    getPrice (val) {
-      return ((val || 0) * 100).toFixed(2)
-    },
     closeAnyModal () {
       this.showEditStockModal = false;
       this.showReceiptModal = false;
@@ -101,10 +93,16 @@ const app = new Vue({
         return null;
       }
     },
-    getTotalForTheDay (formattedDate) {
+    getTotalSaleForTheDay (formattedDate) {
       const customersForTheDay = this.getReceiptsForSpecificDay(formattedDate);
       let total = 0;
       customersForTheDay.forEach(receipt => total += receipt.total);
+      return total;
+    },
+    getTotalProfitForTheDay (formattedDate) {
+      const customersForTheDay = this.getReceiptsForSpecificDay(formattedDate);
+      let total = 0;
+      customersForTheDay.forEach(receipt => total += (receipt.profit || 0));
       return total;
     },
     generateOutOfStockListPdf () {
@@ -280,7 +278,7 @@ const app = new Vue({
         })
 
         for (const item of listToBeAdded) {
-          if (!item.id || !item.name || !item.stock || !item.price || item.id == '' || item.name == '') {
+          if (!item.id || !item.name || !item.stock || !item.price || item.id === '' || item.name === '') {
             alert('Sila isi semua tempat!');
             return;
           }

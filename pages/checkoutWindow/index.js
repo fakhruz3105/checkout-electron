@@ -51,14 +51,6 @@ const app = new Vue({
     }
   },
   methods: {
-    setPrice (val, index) {
-      console.log(val)
-      console.log(index)
-      this.newStockItems[index].price = parseInt(val) * 100
-    },
-    getPrice (val) {
-      return ((val || 0) * 100).toFixed(2)
-    },
     closeAnyModal () {
       console.log('object');
       this.showEditStockModal = false;
@@ -130,12 +122,29 @@ const app = new Vue({
     getTotal (item) {
       return +item.stock * +item.price;
     },
+    getProfit (item) {
+      if (!item.price || item.price === 0) {
+        // Set by default 10% profit
+        const profitForEachItem = parseFloat((+item.price * 0.1).toFixed(2))
+        return profitForEachItem * +item.stock
+      } else {
+        const profitForEachItem = parseFloat((+item.price - +item.buyPrice).toFixed(2))
+        return profitForEachItem * +item.stock
+      }
+    },
     getAbsoluteTotal () {
       let sum = 0;
       this.checkoutItems.forEach(item => {
         sum += +this.getTotal(item);
       });
       return sum;
+    },
+    getProfitTotal () {
+      let sumProfit = 0;
+      this.checkoutItems.forEach(item => {
+        sumProfit += this.getProfit(item);
+      });
+      return sumProfit;
     },
     addToCheckout () {
       const itemId = this.$refs.itemId.value;
@@ -214,7 +223,8 @@ const app = new Vue({
           });
           ipcRenderer.send('customer:new', {
             items: this.checkoutItems,
-            total: this.getAbsoluteTotal()
+            total: this.getAbsoluteTotal(),
+            profit: this.getProfitTotal()
           });
           ipcRenderer.send('item:update', this.items);
           this.fetchAll();
@@ -267,7 +277,8 @@ const app = new Vue({
         id: '',
         name: '',
         stock: 0,
-        price: 0
+        price: 0,
+        buyPrice: 0
       });
     },
     removeNewStockItem (index) {

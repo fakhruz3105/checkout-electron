@@ -9,7 +9,7 @@ const fs = require('fs');
 
 const { app, BrowserWindow, ipcMain, shell } = electron;
 
-process.env.NODE_ENV = 'production';
+process.env.NODE_ENV = 'development';
 
 let mainWindow;
 let checkoutWindow;
@@ -228,15 +228,30 @@ ipcMain.on('item:fetchAll', () => {
   checkoutWindow?.webContents.send('item:fetchAll', store.get('items'));
 });
 
+function calculateAverageBuyPrice (oldStockCount, oldBuyPrice, newStockCount, newBuyPrice) {
+  const oldStockTotalPrice = oldStockCount * oldBuyPrice
+  const newStockTotalPrice = newStockCount * newBuyPrice
+  return parseFloat(((oldStockTotalPrice + newStockTotalPrice) / (oldStockCount + newStockCount)).toFixed(2))
+}
+
 ipcMain.on('item:addAll', (e, items) => {
   const unlisted =[];
   items.forEach(item => {
     let isItemNotListed = true;
     const listItems = store.get('items');
     listItems.forEach(stock => {
-      if (stock.id == item.id) {
+      if (stock.id === item.id) {
         stock.stock += item.stock;
         stock.price = item.price;
+
+        if (!stock.buyPrice || stock.buyPrice === 0) {
+          stock.buyPrice = item.buyPrice
+        } else if (!item.buyPrice || item.buyPrice === 0) {
+          stock.buyPrice = stock.buyPrice
+        } else {
+          stock.buyPrice = calculateAverageBuyPrice(stock.stock, stock.buyPrice, item.stock, item.buyPrice)
+        }
+
         isItemNotListed = false;
       }
     });
