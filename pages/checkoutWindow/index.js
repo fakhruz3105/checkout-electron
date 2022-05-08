@@ -122,14 +122,14 @@ const app = new Vue({
     getTotal (item) {
       return +item.stock * +item.price;
     },
-    getProfit (item) {
+    getProfit (item, count) {
       if (!item.price || item.price === 0) {
         // Set by default 10% profit
         const profitForEachItem = parseFloat((+item.price * 0.1).toFixed(2))
-        return profitForEachItem * +item.stock
+        return profitForEachItem * count
       } else {
         const profitForEachItem = parseFloat((+item.price - +item.buyPrice).toFixed(2))
-        return profitForEachItem * +item.stock
+        return profitForEachItem * count
       }
     },
     getAbsoluteTotal () {
@@ -142,7 +142,7 @@ const app = new Vue({
     getProfitTotal () {
       let sumProfit = 0;
       this.checkoutItems.forEach(item => {
-        sumProfit += this.getProfit(item);
+        sumProfit += this.getProfit(item, item.stock);
       });
       return sumProfit;
     },
@@ -217,6 +217,9 @@ const app = new Vue({
               this.items.forEach(stockItem => {
                 if (item.id == stockItem.id) {
                   stockItem.stock -= item.stock;
+                  stockItem.sold += item.stock;
+                  const profit = this.getProfit(stockItem, item.stock)
+                  stockItem.profit = parseFloat((stockItem.profit + profit).toFixed(2))
                 }
               });
             }

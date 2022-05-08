@@ -265,7 +265,9 @@ const app = new Vue({
         id: '',
         name: '',
         stock: 0,
-        price: 0
+        price: 0,
+        sold: 0,
+        profit: 0
       });
     },
     removeNewStockItem (index) {
@@ -302,6 +304,8 @@ const app = new Vue({
             item.stock = !!amount || amount !== '' ? amount : item.stock;
             item.name = !!name || name !== '' ? name : item.name;
             item.price = !!price || price !== '' ? price : item.price;
+            item.sold = !item.sold ? 0 : item.sold
+            item.profit = !item.profit ? 0 : item.profit
           }
         });
         ipcRenderer.send('item:update', this.items);
