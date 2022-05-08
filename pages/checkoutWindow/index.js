@@ -123,7 +123,7 @@ const app = new Vue({
       return +item.stock * +item.price;
     },
     getProfit (item, count) {
-      if (!item.price || item.price === 0) {
+      if (!item.buyPrice || item.buyPrice === 0) {
         // Set by default 10% profit
         const profitForEachItem = parseFloat((+item.price * 0.1).toFixed(2))
         return profitForEachItem * count

@@ -276,7 +276,7 @@
             </thead>
             <tbody>
               <tr v-for="(item, index) in viewedReceipt.items" :key="index">
-                <td>{{ `ID: ${item.id}` }}</td>
+                <td>{{ item.id }}</td>
                 <td>{{ item.name }}</td>
                 <td>{{ getTotal(item).toFixed(2).toString() }}</td>
                 <td>{{ item.stock }}</td>
