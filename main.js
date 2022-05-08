@@ -240,7 +240,7 @@ ipcMain.on('item:addAll', (e, items) => {
     let isItemNotListed = true;
     const listItems = store.get('items');
     listItems.forEach(stock => {
-      if (stock.id === item.id) {
+      if (stock.id == item.id) {
         stock.stock += item.stock;
         stock.price = item.price;
 

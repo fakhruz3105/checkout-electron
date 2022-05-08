@@ -20,8 +20,11 @@
             <a @click="openAddStockModal">Tambah Stock</a>
           </li>
           <li class="nav-item">
-              <a @click="page = 'stock-list'">Senarai Stock</a>
+              <a @click="page = 'stock-list'">Semua Stock</a>
           </li>
+          <li class="nav-item">
+            <a @click="page = 'out-of-stock-list'">Kehabisan Stock</a>
+        </li>
           <li class="nav-item">
             <a @click="() => { page = 'receipt-list'; showAllReceipt = false }">Senarai Resit</a>
           </li>
@@ -29,6 +32,67 @@
       </div>
     </header>
     <div v-if="page === 'stock-list'" class="main container">
+      <input v-model="search" id="search" type="search" placeholder="Search">
+      <table id="all" class="item-list">
+        <caption><span>Senarai Semua</span><button style="margin-left: 1rem;" @click="generateAllStockListPdf">Print</button></caption>
+        <thead>
+          <tr>
+            <th style="width: 25%;">Barcode</th>
+            <th style="width: 40%;">Nama Barang</th>
+            <th>Stock</th>
+            <th>Harga(RM)</th>
+            <th>Jumlah Jualan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="filteredItems.length > 0">
+            <tr v-for="item in filteredItems" :key="item.id" @click="editItem(item.id)">
+              <td>{{ item.id }}</td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.stock }}</td>
+              <td>RM {{ item.price.toFixed(2) }}</td>
+              <td>{{ item.sold }}</td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr>
+              <td style="text-align: center;" colspan="5">-- NONE --</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <div @click="closeEditStockModal" v-if="showEditStockModal" class="modal-background">
+        <div @click.stop class="modal">
+          <div class="modal-header">
+            <p><strong>Edit Stock</strong></p>
+            <p @click="closeEditStockModal" class="close-modal-btn">x</p>
+          </div>
+          <div class="modal-body">
+            <div class="checkout-input">
+              <div style="width: 65%;">
+                <span>Barcode: </span><input type="text" placeholder="Barcode" :value="getSelectedStockItem.id" disabled>
+              </div>
+              <div style="width: 30%;">
+                <span>Bilangan: </span><input ref="selectedItemAmount" type="number" placeholder="Bilangan" :value="getSelectedStockItem.stock">
+              </div>
+            </div>
+            <div class="checkout-input">
+              <div style="width: 65%;">
+                <span>Nama: </span><input ref="selectedItemName" type="text" placeholder="Nama" :value="getSelectedStockItem.name">
+              </div>
+              <div style="width: 30%;">
+                <span>Harga(RM): </span><input ref="selectedItemPrice" type="number" placeholder="RM0.00" :value="getSelectedStockItem.price">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer" style="justify-content: flex-end;">
+            <button style="margin-right: 10px;" class="warning-btn" @click="deleteStock">Delete</button>
+            <button @click="editStock">Update Stock</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-else-if="page === 'out-of-stock-list'" class="main container">
       <input v-model="search" id="search" type="search" placeholder="Search">
       <table id="outStock" class="item-list">
         <caption><span>Kehabisan Stock</span><button style="margin-left: 1rem;" @click="generateOutOfStockListPdf">Print</button></caption>
@@ -44,34 +108,6 @@
         <tbody>
           <template v-if="outOfStockItems.length > 0">
             <tr v-for="item in outOfStockItems" :key="item.id" @click="editItem(item.id)">
-              <td>{{ item.id }}</td>
-              <td>{{ item.name }}</td>
-              <td>{{ item.stock }}</td>
-              <td>RM {{ item.price.toFixed(2) }}</td>
-              <td>{{ item.sold }}</td>
-            </tr>
-          </template>
-          <template v-else>
-            <tr>
-              <td style="text-align: center;" colspan="5">-- NONE --</td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
-      <table id="all" class="item-list">
-        <caption><span>Senarai Semua</span><button style="margin-left: 1rem;" @click="generateAllStockListPdf">Print</button></caption>
-        <thead>
-          <tr>
-            <th style="width: 25%;">Barcode</th>
-            <th style="width: 40%;">Nama Barang</th>
-            <th>Stock</th>
-            <th>Harga(RM)</th>
-            <th>Jumlah Jualan</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template v-if="filteredItems.length > 0">
-            <tr v-for="item in filteredItems" :key="item.id" @click="editItem(item.id)">
               <td>{{ item.id }}</td>
               <td>{{ item.name }}</td>
               <td>{{ item.stock }}</td>
@@ -278,8 +314,8 @@
               <tr v-for="(item, index) in viewedReceipt.items" :key="index">
                 <td>{{ item.id }}</td>
                 <td>{{ item.name }}</td>
-                <td>{{ getTotal(item).toFixed(2).toString() }}</td>
                 <td>{{ item.stock }}</td>
+                <td>{{ getTotal(item).toFixed(2).toString() }}</td>
               </tr>
             </tbody>
           </table>

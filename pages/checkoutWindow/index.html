@@ -18,7 +18,11 @@
       <div class="modal-body">
         <div class="checkout-input">
           <div style="width: 65%;">
-            <span>Barcode: </span><input ref="itemId" @keyup.enter="addToCheckout" type="text" placeholder="Barcode">
+            <span>Barcode: </span>
+            <input ref="itemId" @keyup.enter="addToCheckout" type="text" placeholder="Barcode" list="items">
+            <datalist id="items">
+              <option v-for="item in items" :value="item.id">{{ item.name }}</option>
+            </datalist>
           </div>
           <div style="width: 30%;">
             <span>Bilangan: </span><input @keyup.enter="addToCheckout" ref="amount" type="number" placeholder="Bilangan">
@@ -26,7 +30,8 @@
         </div>
         <div class="checkout-input">
           <div style="width: 65%;">
-            <span>Nama: </span><input ref="itemName" @keyup.enter="addUnlistedItemToCheckout" type="text" placeholder="Nama">
+            <span>Nama: </span>
+            <input ref="itemName" @keyup.enter="addUnlistedItemToCheckout" type="text" placeholder="Nama">
           </div>
           <div style="width: 30%;">
             <span>Harga(RM): </span><input @keyup.enter="addUnlistedItemToCheckout" ref="price" type="number" placeholder="RM0.00">
@@ -95,8 +100,8 @@
               <tr v-for="(item, index) in viewedReceipt.items" :key="index">
                 <td>{{ item.id }}</td>
                 <td>{{ item.name }}</td>
-                <td>{{ getTotal(item).toFixed(2).toString() }}</td>
                 <td>{{ item.stock }}</td>
+                <td>{{ getTotal(item).toFixed(2).toString() }}</td>
               </tr>
             </tbody>
           </table>

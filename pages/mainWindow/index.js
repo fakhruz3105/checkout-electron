@@ -233,7 +233,9 @@ const app = new Vue({
         id: '',
         name: '',
         stock: 0,
-        price: 0
+        price: 0,
+        sold: 0,
+        profit: 0
       }];
       this.showAddStockModal = true;
       await new Promise((resolve) => {
