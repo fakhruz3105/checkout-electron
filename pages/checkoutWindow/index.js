@@ -1,4 +1,5 @@
-const { ipcRenderer, ipcMain } = require('electron');
+const { ipcRenderer } = require('electron');
+const { DateTime } = require('../../DateTime')
 
 const app = new Vue({
   data: {
@@ -33,7 +34,7 @@ const app = new Vue({
       return this.items.filter(item => item.id == this.selectedItemId)[0];
     },
     getTodayDate () {
-      const date = new Date();
+      const date = new DateTime();
       return this.getFormattedDate(date);
     },
     getTodaysReceipts () {
@@ -63,21 +64,12 @@ const app = new Vue({
       this.showReceiptModal = true;
     },
     getFormattedTime (timestamp) {
-      const date = new Date(timestamp);
-      const hours = date.getHours();
-      const min = date.getMinutes();
-      const sec = ('0' + date.getSeconds()).slice(-2);
-      return `${hours}:${min}:${sec}`;
+      const date = new DateTime(timestamp);
+      return date.format('HH:MM:ss')
     },
     getFormattedDate (timestamp) {
-      const dayName = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jummat', 'Sabtu'];
-      const monthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      const date = new Date(timestamp);
-      const day = dayName[date.getDay()];
-      const month = monthName[date.getMonth()];
-      const dayDate = ('0' + date.getDate().toString()).slice(-2);
-      const year = date.getFullYear();
-      return `${dayDate}_${month}_${year}_${day}`;
+      const date = new DateTime(timestamp);
+      return date.format('DD_MM_YYYY_dddd')
     },
     getReceiptsForSpecificDay (formattedDate) {
       return this.customers[formattedDate].filter(customer => customer.id.includes(this.search));

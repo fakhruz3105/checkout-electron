@@ -1,4 +1,5 @@
-const { ipcRenderer, ipcMain } = require('electron');
+const { ipcRenderer } = require('electron');
+const { DateTime } = require('../../DateTime')
 
 const app = new Vue({
   data: {
@@ -14,14 +15,29 @@ const app = new Vue({
     showAddStockModal: false,
     showEditStockModal: false,
     showReceiptModal: false,
-    showAllReceipt: false
+    showAllReceipt: false,
+    sortingProperty: 'id',
+    sortingOrder: true, // true mean ascending false mean descending
+    receiptDay: ''
   },
   computed: {
     outOfStockItems () {
       return this.filteredItems.filter(item => item.stock < 10)
     },
     filteredItems () {
-      return this.items.filter(item => JSON.stringify(item).toLowerCase().includes(this.search.toLowerCase()));
+      return this.items
+        .filter(item => JSON.stringify(item).toLowerCase().includes(this.search.toLowerCase()))
+        .sort((a, b) => {
+          if (typeof a[this.sortingProperty] === 'string') {
+            if (this.sortingProperty === 'id') {
+              return this.sortingOrder ? a[this.sortingProperty].length - b[this.sortingProperty].length || a[this.sortingProperty].localeCompare(b[this.sortingProperty]) : b[this.sortingProperty].length - a[this.sortingProperty].length || b[this.sortingProperty].localeCompare(a[this.sortingProperty])
+            }
+
+            return this.sortingOrder ? a[this.sortingProperty].localeCompare(b[this.sortingProperty]) : b[this.sortingProperty].localeCompare(a[this.sortingProperty])
+          } else {
+            return this.sortingOrder ? a[this.sortingProperty] - b[this.sortingProperty] : b[this.sortingProperty] - a[this.sortingProperty]
+          }
+        })
     },
     getCheckoutItems () {
       return this.checkoutItems;
@@ -33,7 +49,7 @@ const app = new Vue({
       return this.items.filter(item => item.id == this.selectedItemId)[0];
     },
     getTodayDate () {
-      const date = new Date();
+      const date = new DateTime();
       return this.getFormattedDate(date);
     },
     getTodaysReceipts () {
@@ -48,9 +64,43 @@ const app = new Vue({
     },
     getAllDaysShopOpen () {
       return Object.keys(this.customers).reverse();
-    }
+    },
+    getReceiptsForSpecificDay () {
+      return this.customers[this.receiptDay].filter(customer => customer.id.includes(this.search));
+    },
+    getReceiptsForSpecificDayInReverse () {
+      const receiptsInReverse = [...this.getReceiptsForSpecificDay];
+      return receiptsInReverse.reverse();
+    },
+    getTotalSaleForTheDay () {
+      const customersForTheDay = this.getReceiptsForSpecificDay;
+      let total = 0;
+      customersForTheDay.forEach(receipt => total += receipt.total);
+      return total;
+    },
+    getTotalProfitForTheDay () {
+      const customersForTheDay = this.getReceiptsForSpecificDay;
+      let total = 0;
+      customersForTheDay.forEach(receipt => total += (receipt.profit || 0));
+      return total;
+    },
   },
   methods: {
+    changePage (page) {
+      this.page = page
+      this.search = ''
+      if (page === 'receipt-list') {
+        this.showAllReceipt = false
+      }
+    },
+    sortBy (property) {
+      if (property === this.sortingProperty) {
+        this.sortingOrder = !this.sortingOrder
+      } else {
+        this.sortingProperty = property
+        this.sortingOrder = true
+      }
+    },
     closeAnyModal () {
       this.showEditStockModal = false;
       this.showReceiptModal = false;
@@ -62,48 +112,12 @@ const app = new Vue({
       this.showReceiptModal = true;
     },
     getFormattedTime (timestamp) {
-      const date = new Date(timestamp);
-      const hours = date.getHours();
-      const min = date.getMinutes();
-      const sec = ('0' + date.getSeconds()).slice(-2);
-      return `${hours}:${min}:${sec}`;
+      const date = new DateTime(timestamp);
+      return date.format('HH:MM:ss')
     },
     getFormattedDate (timestamp) {
-      const dayName = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jummat', 'Sabtu'];
-      const monthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      const date = new Date(timestamp);
-      const day = dayName[date.getDay()];
-      const month = monthName[date.getMonth()];
-      const dayDate = ('0' + date.getDate().toString()).slice(-2);
-      const year = date.getFullYear();
-      return `${dayDate}_${month}_${year}_${day}`;
-    },
-    getReceiptsForSpecificDay (formattedDate) {
-      return this.customers[formattedDate].filter(customer => customer.id.includes(this.search));
-    },
-    getReceiptsForSpecificDayInReverse (formattedDate) {
-      const receiptsInReverse = [...this.getReceiptsForSpecificDay(formattedDate)];
-      return receiptsInReverse.reverse();
-    },
-    getReceipt (formattedDate) {
-      const today = this.getReceiptsForSpecificDay(formattedDate);
-      if (today) {
-        return today[today.length - 1];
-      } else {
-        return null;
-      }
-    },
-    getTotalSaleForTheDay (formattedDate) {
-      const customersForTheDay = this.getReceiptsForSpecificDay(formattedDate);
-      let total = 0;
-      customersForTheDay.forEach(receipt => total += receipt.total);
-      return total;
-    },
-    getTotalProfitForTheDay (formattedDate) {
-      const customersForTheDay = this.getReceiptsForSpecificDay(formattedDate);
-      let total = 0;
-      customersForTheDay.forEach(receipt => total += (receipt.profit || 0));
-      return total;
+      const date = new DateTime(timestamp);
+      return date.format('DD_MM_YYYY_dddd')
     },
     generateOutOfStockListPdf () {
       if (this.outOfStockItems.length > 0) ipcRenderer.send('item:generateStockListPdf', 'Senarai Kehabisan Stock', this.outOfStockItems)
@@ -336,6 +350,7 @@ const app = new Vue({
     });
     ipcRenderer.on('customer:fetchAll', (e, customers) => {
       this.customers = customers;
+      this.receiptDay = Object.keys(customers).reverse()[0]
     });
     ipcRenderer.on('item:generateStockListPdf', (e, success, filePath) => {
       if (!success) {

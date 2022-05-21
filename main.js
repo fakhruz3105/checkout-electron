@@ -6,6 +6,7 @@ const { Menu } = require('electron');
 const ejs = require('ejs');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const { DateTime } = require('./DateTime')
 
 const { app, BrowserWindow, ipcMain, shell } = electron;
 
@@ -23,27 +24,18 @@ const store = new Store({
 });
 
 function getFormattedTime (timestamp) {
-  const date = new Date(timestamp);
-  const hours = date.getHours();
-  const min = date.getMinutes();
-  const sec = ('0' + date.getSeconds()).slice(-2);
-  return `${hours}:${min}:${sec}`;
+  const date = new DateTime(timestamp);
+  return date.format('HH:MM:ss')
 }
 
 function getFormattedDate (timestamp) {
-  const dayName = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jummat', 'Sabtu'];
-  const monthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const date = new Date(timestamp);
-  const day = dayName[date.getDay()];
-  const month = monthName[date.getMonth()];
-  const dayDate = ('0' + date.getDate().toString()).slice(-2);
-  const year = date.getFullYear();
-  return `${dayDate} ${month} ${year}`;
+  const date = new DateTime(timestamp);
+  return date.format('DD MMMM YYYY')
 }
 
 function getCurrentDate () {
-  const date = new Date()
-  return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`
+  const date = new DateTime()
+  return date.format('DD-MM-YYYY')
 }
 
 async function ejsToPdfBuffer (browser, option, templateData) {
@@ -87,6 +79,7 @@ async function generatePdf (templateName, data) {
     headless: true,
     args: [
       '--no-sandbox',
+      '--headless',
       '--disable-gpu'
     ]
   })
@@ -102,7 +95,7 @@ async function generatePdf (templateName, data) {
     await browser.close()
   }
 
-  const filePath = path.join('/home/udin/Downloads', `${data.title}-${date}.pdf`)
+  const filePath = path.join('/root/Downloads', `${data.title}-${date}.pdf`)
 
   fs.writeFileSync(filePath, pdfBuffers)
 
@@ -190,7 +183,7 @@ app.on('ready', () => {
     store.set('customers', {});
   }
 
-  const todayDate = dateConverter(new Date());
+  const todayDate = dateConverter(new DateTime());
   const allCustomers = store.get('customers');
   const todaysCustomer = allCustomers[todayDate];
 
@@ -220,7 +213,8 @@ ipcMain.on('item:generateStockListPdf', async (e, title, items) => {
 });
 
 ipcMain.on('folder:open', async (e, path) => {
-  shell.openPath(path)
+  // shell.openPath(path)
+  console.log('path >>', path)
 });
 
 ipcMain.on('item:fetchAll', () => {
@@ -272,26 +266,17 @@ ipcMain.on('item:update', (e, items) => {
 });
 
 const dateConverter = (timestamp) => {
-  const dayName = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jummat', 'Sabtu'];
-  const monthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const date = new Date(timestamp);
-  const day = dayName[date.getDay()];
-  const month = monthName[date.getMonth()];
-  const dayDate = ('0' + date.getDate().toString()).slice(-2);
-  const year = date.getFullYear();
-  return `${dayDate}_${month}_${year}_${day}`;
+  const date = new DateTime(timestamp);
+  return date.format('DD_MM_YYYY_dddd')
 }
 
 const receiptIdGenerator = () => {
-  const date = new Date();
-  const day = ('0' + date.getDate().toString()).slice(-2);
-  const month = (('0' + date.getMonth() + 1).toString()).slice(-2);
-  const year = date.getFullYear();
-  return day + month + year;
+  const date = new DateTime();
+  return date.format('DDMMYYYY')
 }
 
 ipcMain.on('customer:new', (e, newCustomer) => {
-  const timestamp = new Date();
+  const timestamp = new DateTime();
   const day = dateConverter(timestamp);
   const customers = store.get('customers');
 
@@ -299,7 +284,7 @@ ipcMain.on('customer:new', (e, newCustomer) => {
     customers[day] = [
       {
         id: `${receiptIdGenerator()}-1`,
-        datetime: timestamp,
+        datetime: timestamp.time,
         ...newCustomer
       }
     ]

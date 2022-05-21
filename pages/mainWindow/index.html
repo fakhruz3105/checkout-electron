@@ -20,28 +20,28 @@
             <a @click="openAddStockModal">Tambah Stock</a>
           </li>
           <li class="nav-item">
-              <a @click="page = 'stock-list'">Semua Stock</a>
+              <a @click="changePage('stock-list')">Semua Stock</a>
           </li>
           <li class="nav-item">
-            <a @click="page = 'out-of-stock-list'">Kehabisan Stock</a>
+            <a @click="changePage('out-of-stock-list')">Kehabisan Stock</a>
         </li>
           <li class="nav-item">
-            <a @click="() => { page = 'receipt-list'; showAllReceipt = false }">Senarai Resit</a>
+            <a @click="changePage('receipt-list')">Senarai Resit</a>
           </li>
         </ul>
       </div>
     </header>
-    <div v-if="page === 'stock-list'" class="main container">
+    <div v-if="page === 'stock-list'" class="container">
       <input v-model="search" id="search" type="search" placeholder="Search">
       <table id="all" class="item-list">
         <caption><span>Senarai Semua</span><button style="margin-left: 1rem;" @click="generateAllStockListPdf">Print</button></caption>
         <thead>
           <tr>
-            <th style="width: 25%;">Barcode</th>
-            <th style="width: 40%;">Nama Barang</th>
-            <th>Stock</th>
-            <th>Harga(RM)</th>
-            <th>Jumlah Jualan</th>
+            <th style="width: 25%;" @click="sortBy('id')">Barcode</th>
+            <th style="width: 40%;" @click="sortBy('name')">Nama Barang</th>
+            <th @click="sortBy('stock')">Stock</th>
+            <th @click="sortBy('price')">Harga(RM)</th>
+            <th @click="sortBy('sold')">Jumlah Jualan</th>
           </tr>
         </thead>
         <tbody>
@@ -92,17 +92,17 @@
         </div>
       </div>
     </div>
-    <div v-else-if="page === 'out-of-stock-list'" class="main container">
+    <div v-else-if="page === 'out-of-stock-list'" class="container">
       <input v-model="search" id="search" type="search" placeholder="Search">
       <table id="outStock" class="item-list">
         <caption><span>Kehabisan Stock</span><button style="margin-left: 1rem;" @click="generateOutOfStockListPdf">Print</button></caption>
         <thead>
           <tr>
-            <th style="width: 25%;">Barcode</th>
-            <th style="width: 40%;">Nama Barang</th>
-            <th>Stock</th>
-            <th>Harga(RM)</th>
-            <th>Jumlah Jualan</th>
+            <th style="width: 25%;" @click="sortBy('id')">Barcode</th>
+            <th style="width: 40%;" @click="sortBy('name')">Nama Barang</th>
+            <th @click="sortBy('stock')">Stock</th>
+            <th @click="sortBy('price')">Harga(RM)</th>
+            <th @click="sortBy('sold')">Jumlah Jualan</th>
           </tr>
         </thead>
         <tbody>
@@ -153,11 +153,19 @@
         </div>
       </div>
     </div>
-    <div id="receipt-list-div" v-else-if="page === 'receipt-list'" class="main container" :style="{ overflow: showAllReceipt ? 'auto' : 'hidden' }">
+    <div id="receipt-list-div" v-else-if="page === 'receipt-list'" class="container">
       <input v-model="search" id="search" type="search" placeholder="Search">
-      <template v-for="day in getAllDaysShopOpen">
-        <table :key="day" class="receipt-list" v-if="getReceiptsForSpecificDay(day).length > 0">
-          <caption>{{ `${day.split('_').slice(0, 3).join(' ')}, (${day.split('_')[3]})` }}</caption>
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; font-weight: bold; margin: 1rem 0;">
+        <select v-model="receiptDay" style="width: auto;">
+          <option v-for="day in getAllDaysShopOpen" :value="day">{{ `${day.split('_').slice(0, 3).join(' ')}, (${day.split('_')[3]})` }}</option>
+        </select>
+        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+          <span>Jumlah Jualan: {{ `RM${getTotalSaleForTheDay.toFixed(2)}` }}</span>
+          <span>Jumlah Untung: {{ `RM${getTotalProfitForTheDay.toFixed(2)}` }}</span>
+        </div>
+      </div>
+      <div style="overflow: auto; height: 80%; margin: 0.5rem 0;">
+        <table class="receipt-list" v-if="receiptDay" style="margin: 0;">
           <thead>
             <tr>
               <th>ID Resit</th>
@@ -167,24 +175,21 @@
             </tr>
           </thead>
           <tbody>
-            <template v-if="!!getReceiptsForSpecificDay(day) && getReceiptsForSpecificDay(day).length > 0">
-              <tr v-for="(receipt, index) in getReceiptsForSpecificDayInReverse(day)" :key="index" @click="viewReceipt(receipt)">
+            <template v-if="getReceiptsForSpecificDay.length > 0">
+              <tr v-for="(receipt, index) in getReceiptsForSpecificDayInReverse" :key="index" @click="viewReceipt(receipt)">
                 <td>{{ receipt.id }}</td>
                 <td>{{ getFormattedTime(receipt.datetime) }}</td>
                 <td>{{ `RM${receipt.total.toFixed(2)}` }}</td>
                 <td>{{ `RM${(receipt.profit?.toFixed(2) || '0.00')}` }}</td>
               </tr>
             </template>
-            <tr style="font-weight: bold;">
-              <td colspan="2">Jumlah Keseluruhan:</td>
-              <td>{{ `RM${getTotalSaleForTheDay(day).toFixed(2)}` }}</td>
-              <td>{{ `RM${getTotalProfitForTheDay(day).toFixed(2)}` }}</td>
-            </tr>
+            <template v-else>
+              <tr>
+                <td colspan="4">-- No Receipt --</td>
+              </tr>
+            </template>
           </tbody>
         </table>
-      </template>
-      <div v-if="!showAllReceipt" class="gradient-cover">
-        <button @click="showAllReceipt = true">Buka Semua</button>
       </div>
     </div>
     <div @click="closeCheckoutModal" v-if="showCheckoutModal" class="modal-background">
