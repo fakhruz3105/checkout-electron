@@ -19,14 +19,17 @@
           <li class="nav-item">
             <a @click="openAddStockModal">Tambah Stock</a>
           </li>
-          <li class="nav-item">
+          <li :class="{ 'nav-item': true, 'active-page': page === 'stock-list' }">
               <a @click="changePage('stock-list')">Semua Stock</a>
           </li>
-          <li class="nav-item">
+          <li :class="{ 'nav-item': true, 'active-page': page === 'out-of-stock-list' }">
             <a @click="changePage('out-of-stock-list')">Kehabisan Stock</a>
-        </li>
-          <li class="nav-item">
+          </li>
+          <li :class="{ 'nav-item': true, 'active-page': page === 'receipt-list' }">
             <a @click="changePage('receipt-list')">Senarai Resit</a>
+          </li>
+          <li :class="{ 'nav-item': true, 'active-page': page === 'analitik' }">
+            <a @click="changePage('analitik')">Analitik</a>
           </li>
         </ul>
       </div>
@@ -192,6 +195,73 @@
         </table>
       </div>
     </div>
+    <div v-else-if="page === 'analitik'" class="container">
+      <h2>Analitik</h2>
+      <div style="display: flex; align-items: center; margin: 1rem 0;">
+        <p>Dari</p>
+        <select v-model="analyticDayFrom" style="width: 300px; margin: 0 1rem;">
+          <option v-for="day in analyticDayFromOptions" :value="day">{{ `${day.split('_').slice(0, 3).join(' ')}, (${day.split('_')[3]})` }}</option>
+        </select>
+        <p>Hingga</p>
+        <select v-model="analyticDayTo" style="width: 300px; margin: 0 1rem;">
+          <option v-for="day in analyticDayToOptions" :value="day">{{ `${day.split('_').slice(0, 3).join(' ')}, (${day.split('_')[3]})` }}</option>
+        </select>
+      </div>
+      <div class="analytic-view">
+        <div>
+          <p>Jumlah Jualan: RM{{ analyticTotalSales }}</p>
+          <p>Jumlah Untung: RM{{ analyticTotalProfits }}</p>
+        </div>
+        <table class="item-list">
+          <caption><span>Senarai Barang Paling Banyak Terjual</span></caption>
+          <thead>
+            <tr>
+              <th>Barcode</th>
+              <th>Nama Barang</th>
+              <th>Jumlah Terjual</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-if="analyticMostSoldItems.length > 0">
+              <tr v-for="item in analyticMostSoldItems" :key="item.id">
+                <td>{{ item.id }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.sold }}</td>
+              </tr>
+            </template>
+            <template v-else>
+              <tr>
+                <td style="text-align: center;" colspan="3">-- NONE --</td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <table class="item-list">
+          <caption><span>Senarai Barang Paling Untung</span></caption>
+          <thead>
+            <tr>
+              <th>Barcode</th>
+              <th>Nama Barang</th>
+              <th>Jumlah Untung</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-if="analyticMostProfitableItems.length > 0">
+              <tr v-for="item in analyticMostProfitableItems" :key="item.id">
+                <td>{{ item.id }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.profit.toFixed(2) }}</td>
+              </tr>
+            </template>
+            <template v-else>
+              <tr>
+                <td style="text-align: center;" colspan="3">-- NONE --</td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
     <div @click="closeCheckoutModal" v-if="showCheckoutModal" class="modal-background">
       <div @click.stop class="modal">
         <div class="modal-header">
@@ -275,11 +345,16 @@
             </thead>
             <tbody>
               <tr v-for="(item, index) in newStockItems" :key="index">
-                <td><input @blur="checkIfItemIsInStock(index)" type="text" v-model="item.id"></td>
+                <td style="width: 20%;">
+                  <input @blur="checkIfItemIsInStock($event, index)" type="text" placeholder="Barcode" list="items">
+                  <datalist id="items">
+                    <option v-for="item in items" :value="item.id">{{ item.name }}</option>
+                  </datalist>
+                </td>
                 <td style="width: 50%;"><input type="text" v-model.number="item.name"></td>
-                <td style="width: 15%;"><input type="number" v-model.number="item.stock"></td>
-                <td style="width: 15%;"><input type="number" v-model.number="item.price" placeholder="RM0.00"></td>
-                <td style="width: 15%;"><input type="number" v-model.number="item.buyPrice" placeholder="RM0.00"></td>
+                <td><input type="number" v-model.number="item.stock"></td>
+                <td><input type="number" v-model.number="item.price" placeholder="RM0.00"></td>
+                <td><input type="number" v-model.number="item.buyPrice" placeholder="RM0.00"></td>
                 <td v-if="newStockItems.length > 1" style="color:red; text-align: center; cursor: pointer;" @click="removeNewStockItem(index)">x</td>
               </tr>
             </tbody>

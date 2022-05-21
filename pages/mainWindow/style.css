@@ -49,6 +49,11 @@ li a:hover {
   color: white;
 }
 
+.active-page {
+  background: var(--primary-color);
+  color: white;
+}
+
 .modal-background {
   position: fixed;
   top: 0;
@@ -101,6 +106,7 @@ li a:hover {
   max-height: 70vh;
   height: min-content;
   overflow-y: auto;
+  min-width: 80vw;
 }
 
 .modal-body table {

@@ -18,7 +18,9 @@ const app = new Vue({
     showAllReceipt: false,
     sortingProperty: 'id',
     sortingOrder: true, // true mean ascending false mean descending
-    receiptDay: ''
+    receiptDay: '',
+    analyticDayFrom: '',
+    analyticDayTo: '',
   },
   computed: {
     outOfStockItems () {
@@ -84,6 +86,80 @@ const app = new Vue({
       customersForTheDay.forEach(receipt => total += (receipt.profit || 0));
       return total;
     },
+    analyticDayFromOptions () {
+      return Object.keys(this.customers)
+    },
+    analyticDayToOptions () {
+      const fromIndex = this.analyticDayFromOptions.indexOf(this.analyticDayFrom)
+      if (fromIndex === -1) return []
+      else return this.analyticDayFromOptions.slice(fromIndex)
+    },
+    dataForAnalytics () {
+      const fromIndex = this.analyticDayFromOptions.indexOf(this.analyticDayFrom)
+      const toIndex = this.analyticDayFromOptions.indexOf(this.analyticDayTo)
+      const datesIncluded = this.analyticDayFromOptions.slice(fromIndex, toIndex + 1)
+
+      let data = []
+      datesIncluded.forEach(date => {
+        data = [...data, ...this.customers[date]]
+      })
+
+      return data
+    },
+    analyticTotalSales () {
+      const res = this.dataForAnalytics.map(e => e.total).reduce((a, b) => {
+        return parseFloat((a + b).toFixed(2))
+      }, 0)
+      return res.toFixed(2)
+    },
+    analyticTotalProfits () {
+      const res = this.dataForAnalytics.map(e => e.profit).reduce((a, b) => {
+        return parseFloat((a + b).toFixed(2))
+      }, 0)
+      return res.toFixed(2)
+    },
+    analyticSoldItemsCount () {
+      let items = [] 
+      this.dataForAnalytics.forEach(customer => {
+        items = [...items, ...customer.items]
+      })
+      const soldItems = items.filter(item => item.id !== '-')
+      const soldItemsCount = {}
+      soldItems.forEach(item => {
+        let count = soldItemsCount[item.id] || 0
+        soldItemsCount[item.id] = count + item.stock
+      })
+      return soldItemsCount
+    },
+    analyticMostSoldItems () {
+      const mostSoldItems = Object.keys(this.analyticSoldItemsCount).map(id => {
+        const item = this.items.find(item => item.id === id)
+        return {
+          id,
+          name: item.name,
+          sold: this.analyticSoldItemsCount[id]
+        }
+      }).sort((a, b) => b.sold - a.sold)
+      return mostSoldItems.slice(0, 15)
+    },
+    analyticMostProfitableItems () {
+      const mostSoldItems = Object.keys(this.analyticSoldItemsCount).map(id => {
+        const item = this.items.find(item => item.id === id)
+        const profitPerItem = item.sold || item.sold === 0 ? (item.price / 1.1) * 0.1 : item.price - item.sold
+        const profit = profitPerItem * this.analyticSoldItemsCount[id]
+        return {
+          id,
+          name: item.name,
+          profit
+        }
+      }).sort((a, b) => b.profit - a.profit)
+      return mostSoldItems.slice(0, 15)
+    }
+  },
+  watch: {
+    analyticDayFrom () {
+      this.analyticDayTo = this.analyticDayFrom
+    }
   },
   methods: {
     changePage (page) {
@@ -267,10 +343,14 @@ const app = new Vue({
         }
       }
     },
-    checkIfItemIsInStock (index) {
-      const itemId = this.newStockItems[index].id;
+    checkIfItemIsInStock (event, index) {
+      const itemId = event.target.value;
+
+      if (itemId === '' || itemId === null || itemId === undefined) return
+
       const item = this.items.filter(item => item.id == itemId)[0];
       if (item) {
+        this.newStockItems[index].id = itemId;
         this.newStockItems[index].name = item.name;
         this.newStockItems[index].price = item.price;
       }
@@ -296,6 +376,7 @@ const app = new Vue({
         })
 
         for (const item of listToBeAdded) {
+          console.log('item >>', item)
           if (!item.id || !item.name || !item.stock || !item.price || item.id === '' || item.name === '') {
             alert('Sila isi semua tempat!');
             return;
