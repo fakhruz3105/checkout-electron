@@ -21,6 +21,21 @@ const app = new Vue({
     receiptDay: '',
     analyticDayFrom: '',
     analyticDayTo: '',
+    finance: [],
+    financialStatementFrom: '',
+    financialStatementTo: '',
+    showFinanceStatementModal: false,
+    financialStatement: {
+      id: null,
+      description: '',
+      value: 0,
+      metadata: {
+        updateable: true
+      },
+      timestamp: new DateTime().time,
+      created: new DateTime().time,
+      updated: new DateTime().time
+    }
   },
   computed: {
     outOfStockItems () {
@@ -154,6 +169,44 @@ const app = new Vue({
         }
       }).sort((a, b) => b.profit - a.profit)
       return mostSoldItems.slice(0, 15)
+    },
+    financialStatementFromTime () {
+      if (!this.financialStatementFrom) {
+        return 0
+      }
+      return new DateTime(this.financialStatementFrom).time
+    },
+    financialStatementToTime () {
+      const selectedDate = new DateTime(this.financialStatementTo).add(1, 'day').time
+      if (!this.financialStatementTo || selectedDate < this.financialStatementFromTime) {
+        return new DateTime().time
+      }
+      return selectedDate
+    },
+    financialStatementDate () {
+      return new DateTime(this.financialStatement.timestamp).format('YYYY-MM-DD')
+    },
+    currentMoneyTotal () {
+      return this.finance.map(e => e.value).reduce((a, b) => {
+        return parseFloat((a + b).toFixed(2))
+      }, 0)
+    },
+    financeFiltered () {
+      return this.finance
+        .filter(statement => {
+          return statement.timestamp >= this.financialStatementFromTime && statement.timestamp < this.financialStatementToTime
+        })
+        .map(statement => {
+          const date = new DateTime(statement.timestamp).format('DD-MM-YYYY')
+          return {
+            ...statement,
+            absValue: Math.abs(statement.value),
+            date
+          }
+        })
+        .sort((a, b) => {
+          return b.timestamp - a.timestamp || b.created - a.created
+        })
     }
   },
   watch: {
@@ -162,9 +215,78 @@ const app = new Vue({
     }
   },
   methods: {
+    setFinancialStatementDate (date) {
+      this.financialStatement.timestamp = new DateTime(date).time
+    },
+    closeFinanceModal () {
+      this.showFinanceStatementModal = false
+      this.financialStatement = {
+        id: null,
+        description: '',
+        value: 0,
+        metadata: {},
+        timestamp: new DateTime().time,
+        created: new DateTime().time,
+        updated: new DateTime().time
+      }
+    },
+    editFinancialStatement (finance) {
+      if (finance.metadata.updateable) {
+        this.financialStatement = {
+          id: finance.id,
+          description: finance.description,
+          value: finance.value,
+          metadata: finance.metadata,
+          timestamp: finance.timestamp,
+          created: finance.created,
+          updated: finance.updated
+        }
+        this.showFinanceStatementModal = true
+      }
+    },
+    saveFinancialStatement () {
+      const id = this.financialStatement.id
+      if (id) {
+        this.finance = this.finance.map(statement => {
+          if (statement.id === id) {
+            statement = {
+              ...statement,
+              description: this.financialStatement.description,
+              value: this.financialStatement.value,
+              metadata: this.financialStatement.metadata,
+              timestamp: this.financialStatement.timestamp,
+              created: this.financialStatement.created,
+              updated: this.financialStatement.updated
+            }
+            return statement
+          }
+
+          return statement
+        })
+      } else {
+        this.finance.push({
+          id: Math.random().toString(16).slice(2),
+          description: this.financialStatement.description,
+          value: this.financialStatement.value,
+          metadata: this.financialStatement.metadata,
+          timestamp: this.financialStatement.timestamp,
+          created: new DateTime().time,
+          updated: new DateTime().time
+        })
+      }
+      ipcRenderer.send('finance:update', this.finance)
+      this.closeFinanceModal()
+    },
+    deleteFinancialStatement () {
+      const id = this.financialStatement.id
+      this.finance.filter(statement => statement.id !== id)
+      ipcRenderer.send('finance:update', this.finance)
+      this.closeFinanceModal()
+    },
     changePage (page) {
       this.page = page
       this.search = ''
+      this.analyticDayFrom = ''
       if (page === 'receipt-list') {
         this.showAllReceipt = false
       }
@@ -209,6 +331,9 @@ const app = new Vue({
     },
     fetchAllCustomers () {
       ipcRenderer.send('customer:fetchAll');
+    },
+    fetchAllFinances () {
+      ipcRenderer.send('finance:fetchAll');
     },
     editItem (id) {
       this.selectedItemId = id;
@@ -347,7 +472,7 @@ const app = new Vue({
       const itemId = event.target.value;
 
       this.newStockItems[index].id = itemId;
-
+      
       const item = this.items.find(item => item.id == itemId);
       if (item) {
         this.newStockItems[index].name = item.name;
@@ -355,7 +480,7 @@ const app = new Vue({
       }
 
       if (index === this.newStockItems.length - 1) {
-      this.addToNewStock()
+        this.addToNewStock()
       }
     },
     addToNewStock () {
@@ -425,6 +550,9 @@ const app = new Vue({
     },
     closeReceiptModal () {
       this.showReceiptModal = false;
+    },
+    addNewStatementForTodaySales () {
+      ipcRenderer.send('finance:update-today-statement')
     }
   },
   created () {
@@ -447,10 +575,14 @@ const app = new Vue({
       }
       ipcRenderer.send('folder:open', filePath)
     });
+    ipcRenderer.on('finance:fetchAll', (e, finance) => {
+      this.finance = finance
+    });
   },
   beforeMount () {
     this.fetchAll();
     this.fetchAllCustomers();
+    this.fetchAllFinances()
   },
   mounted () {
   }

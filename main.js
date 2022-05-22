@@ -183,18 +183,74 @@ app.on('ready', () => {
     store.set('customers', {});
   }
 
+  if (!store.get('finance')) {
+    store.set('finance', []);
+  }
+
   const todayDate = dateConverter(new DateTime());
   const allCustomers = store.get('customers');
   const todaysCustomer = allCustomers[todayDate];
 
   if (!todaysCustomer) {
-    const newTodaysCustomer = [];
     const updatedAllCustomers = {
       ...allCustomers
     };
     updatedAllCustomers[todayDate] = [];
 
     store.set('customers', updatedAllCustomers);
+
+    // Autosave yesterdays sales into a new financial statement
+    let finance = store.get('finance')
+    if (finance.length > 0) {
+      const yesterdayDate = Object.keys(allCustomers).slice(-1)[0]
+      const statementForYesterdaySales = finance.find(({ metadata }) => {
+        const { saleDate } = metadata
+        return yesterdayDate === saleDate
+      })
+
+      const yesterdayCustomers = allCustomers[yesterdayDate]
+      const yesterdayValue = yesterdayCustomers.map(e => e.total).reduce((a, b) => {
+        return parseFloat((a + b).toFixed(2))
+      }, 0)
+
+      if (yesterdayValue > 0) {
+        if (statementForYesterdaySales) {
+          const metadata = statementForYesterdaySales.metadata
+          const receiptCovered = yesterdayCustomers.map(cus => cus.id)
+
+          finance = finance.map(statement => {
+            if (statement.id === statementForYesterdaySales.id) {
+              return {
+                ...statementForYesterdaySales,
+                value: yesterdayValue,
+                metadata: {
+                  ...metadata,
+                  receiptCovered
+                },
+                updated: new DateTime().time
+              }
+            }
+            return statement
+          })
+        } else {
+          const receiptCovered = yesterdayCustomers.map(cus => cus.id)
+          finance.push({
+            id: Math.random().toString(16).slice(2),
+            description: `Jumlah Jualan ${yesterdayDate.split('_').join(' ')}`,
+            value: yesterdayValue,
+            metadata: {
+              upgradeable: false,
+              saleDate: yesterdayDate,
+              receiptCovered
+            },
+            timestamp: new DateTime().time,
+            created: new DateTime().time,
+            updated: new DateTime().time
+          })
+        }
+        store.set('finance', finance)
+      }
+    }
   }
 
   createMainWindow()
@@ -213,8 +269,7 @@ ipcMain.on('item:generateStockListPdf', async (e, title, items) => {
 });
 
 ipcMain.on('folder:open', async (e, path) => {
-  // shell.openPath(path)
-  console.log('path >>', path)
+  shell.openPath(path)
 });
 
 ipcMain.on('item:fetchAll', () => {
@@ -320,6 +375,73 @@ ipcMain.on('customer:receipt', async (e, customer) => {
     mainWindow.webContents.send('customer:receipt', false);
     checkoutWindow?.webContents.send('customer:receipt', false);
   }
+});
+
+ipcMain.on('finance:fetchAll', () => {
+  const finance = store.get('finance');
+  mainWindow.webContents.send('finance:fetchAll', finance);
+  checkoutWindow?.webContents.send('finance:fetchAll', finance);
+});
+
+ipcMain.on('finance:update', (_, finance) => {
+  store.set('finance', finance);
+  mainWindow.webContents.send('finance:fetchAll', finance);
+  checkoutWindow?.webContents.send('finance:fetchAll', finance);
+});
+
+ipcMain.on('finance:update-today-statement', () => {
+  let finance = store.get('finance')
+  const allCustomers = store.get('customers')
+  const todayDate = dateConverter(new DateTime());
+  const statementForTodaySales = finance.find(({ metadata }) => {
+    const { saleDate } = metadata
+    return todayDate === saleDate
+  })
+
+  const todayCustomers = allCustomers[todayDate]
+  const todayValue = todayCustomers.map(e => e.total).reduce((a, b) => {
+    return parseFloat((a + b).toFixed(2))
+  }, 0)
+
+  if (todayValue > 0) {
+    if (statementForTodaySales) {
+      const metadata = statementForTodaySales.metadata
+      const receiptCovered = todayCustomers.map(cus => cus.id)
+
+      finance = finance.map(statement => {
+        if (statement.id === statementForTodaySales.id) {
+          return {
+            ...statementForTodaySales,
+            value: todayValue,
+            metadata: {
+              ...metadata,
+              receiptCovered
+            },
+            updated: new DateTime().time
+          }
+        }
+        return statement
+      })
+    } else {
+      const receiptCovered = todayCustomers.map(cus => cus.id)
+      finance.push({
+        id: Math.random().toString(16).slice(2),
+        description: `Jumlah Jualan ${todayDate.split('_').join(' ')}`,
+        value: todayValue,
+        metadata: {
+          upgradeable: false,
+          saleDate: todayDate,
+          receiptCovered
+        },
+        timestamp: new DateTime().time,
+        created: new DateTime().time,
+        updated: new DateTime().time
+      })
+    }
+    store.set('finance', finance)
+  }
+  mainWindow.webContents.send('finance:fetchAll', finance);
+  checkoutWindow?.webContents.send('finance:fetchAll', finance);
 });
 
 const mainWindowMenu = [

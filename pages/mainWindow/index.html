@@ -17,19 +17,22 @@
         </div>
         <ul class="nav-list">
           <li class="nav-item">
-            <a @click="openAddStockModal">Tambah Stock</a>
+            <a @click="openAddStockModal"><span>Tambah Stock</span></a>
           </li>
           <li :class="{ 'nav-item': true, 'active-page': page === 'stock-list' }">
-              <a @click="changePage('stock-list')">Semua Stock</a>
+              <a @click="changePage('stock-list')"><span>Semua Stock</span></a>
           </li>
           <li :class="{ 'nav-item': true, 'active-page': page === 'out-of-stock-list' }">
-            <a @click="changePage('out-of-stock-list')">Kehabisan Stock</a>
+            <a @click="changePage('out-of-stock-list')"><span>Kehabisan Stock</span></a>
           </li>
           <li :class="{ 'nav-item': true, 'active-page': page === 'receipt-list' }">
-            <a @click="changePage('receipt-list')">Senarai Resit</a>
+            <a @click="changePage('receipt-list')"><span>Senarai Resit</span></a>
           </li>
           <li :class="{ 'nav-item': true, 'active-page': page === 'analitik' }">
-            <a @click="changePage('analitik')">Analitik</a>
+            <a @click="changePage('analitik')"><span>Analitik</span></a>
+          </li>
+          <li :class="{ 'nav-item': true, 'active-page': page === 'financial-statement' }">
+            <a @click="changePage('financial-statement')"><span>Penyata Kewangan</span></a>
           </li>
         </ul>
       </div>
@@ -262,6 +265,49 @@
         </table>
       </div>
     </div>
+    <div v-else-if="page === 'financial-statement'" class="container">
+      <h2>Penyata Kewangan</h2>
+      <p style="margin-top: 1rem;">Kewangan Semasa: RM{{ currentMoneyTotal.toFixed(2) }}</p>
+      <div style="display: flex; align-items: center; margin: 1rem 0;">
+        <p>Dari</p>
+        <input style="width: 300px; margin: 0 1rem;" type="date" v-model="financialStatementFrom">
+        <p>Hingga</p>
+        <input style="width: 300px; margin: 0 1rem;" type="date" v-model="financialStatementTo">
+      </div>
+      <table class="item-list">
+        <caption>
+          <span>Senarai Penyata</span>
+          <button style="margin-left: 1rem;" @click="showFinanceStatementModal = true">Tambah Penyata</button>
+          <button style="margin-left: 1rem;" @click="addNewStatementForTodaySales">Simpan Penyata Jualan Harini</button>
+        </caption>
+        <thead>
+          <tr style="text-align: center;">
+            <th style="width: 60%;">Detail</th>
+            <th><span style="color: green;">Debit</span> / <span style="color: red;">Kredit</span> (RM)</th>
+            <th>Tarikh</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="financeFiltered.length > 0">
+            <tr v-for="item in financeFiltered" :key="item.id" @click="editFinancialStatement(item)">
+              <td>{{ item.description }}</td>
+              <template v-if="item.value >= 0">
+                <td style="color: green; text-align: center;">{{ item.absValue.toFixed(2) }}</td>
+              </template>
+              <template v-else>
+                <td style="color: red; text-align: center;">{{ item.absValue.toFixed(2) }}</td>
+              </template>
+              <td style="text-align: center;">{{ item.date }}</td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr>
+              <td style="text-align: center;" colspan="3">-- NONE --</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
     <div @click="closeCheckoutModal" v-if="showCheckoutModal" class="modal-background">
       <div @click.stop class="modal">
         <div class="modal-header">
@@ -363,6 +409,38 @@
         </div>
         <div class="modal-footer" style="justify-content: flex-end;">
           <button @click="addStock">Tambah Stock</button>
+        </div>
+      </div>
+    </div>
+    <div @click="closeFinanceModal" v-if="showFinanceStatementModal" class="modal-background">
+      <div @click.stop class="modal">
+        <div class="modal-header">
+          <p v-if="financialStatement.id"><strong>Penyata Kewangan</strong></p>
+          <p v-else><strong>Penyata Kewangan Baru</strong></p>
+          <p @click="closeFinanceModal" class="close-modal-btn">x</p>
+        </div>
+        <div class="modal-body">
+          <div style="display: flex; flex-direction: column;">
+            <div class="input-with-label">
+              <span>Detail: </span>
+              <input type="text" v-model="financialStatement.description">
+            </div>
+            <div style="display: flex; align-items: center; margin-top: 1rem;">
+              <div class="input-with-label" style="margin-right: 2rem;">
+                <span v-if="financialStatement.value > 0">Debit: </span>
+                <span v-else>Kredit: </span>
+                <input type="number" v-model.number="financialStatement.value">
+              </div>
+              <div class="input-with-label">
+                <span>Tarikh: </span>
+                <input type="date" :value="financialStatementDate" @blur="setFinancialStatementDate($event.target.value)">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content: flex-end;">
+          <button v-if="financialStatement.id" style="margin-right: 1rem;" class="warning-btn" @click="deleteFinancialStatement">Delete</button>
+          <button @click="saveFinancialStatement">Simpan</button>
         </div>
       </div>
     </div>
