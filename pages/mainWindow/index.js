@@ -346,15 +346,17 @@ const app = new Vue({
     checkIfItemIsInStock (event, index) {
       const itemId = event.target.value;
 
-      if (itemId === '' || itemId === null || itemId === undefined) return
+      this.newStockItems[index].id = itemId;
 
-      const item = this.items.filter(item => item.id == itemId)[0];
+      const item = this.items.find(item => item.id == itemId);
       if (item) {
-        this.newStockItems[index].id = itemId;
         this.newStockItems[index].name = item.name;
         this.newStockItems[index].price = item.price;
       }
+
+      if (index === this.newStockItems.length - 1) {
       this.addToNewStock()
+      }
     },
     addToNewStock () {
       this.newStockItems.push({
