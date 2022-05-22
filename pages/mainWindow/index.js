@@ -231,18 +231,16 @@ const app = new Vue({
       }
     },
     editFinancialStatement (finance) {
-      if (finance.metadata.updateable) {
-        this.financialStatement = {
-          id: finance.id,
-          description: finance.description,
-          value: finance.value,
-          metadata: finance.metadata,
-          timestamp: finance.timestamp,
-          created: finance.created,
-          updated: finance.updated
-        }
-        this.showFinanceStatementModal = true
+      this.financialStatement = {
+        id: finance.id,
+        description: finance.description,
+        value: finance.value,
+        metadata: finance.metadata,
+        timestamp: finance.timestamp,
+        created: finance.created,
+        updated: finance.updated
       }
+      this.showFinanceStatementModal = true
     },
     saveFinancialStatement () {
       const id = this.financialStatement.id
