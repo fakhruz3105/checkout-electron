@@ -224,7 +224,9 @@ const app = new Vue({
         id: null,
         description: '',
         value: 0,
-        metadata: {},
+        metadata: {
+          updateable: true
+        },
         timestamp: new DateTime().time,
         created: new DateTime().time,
         updated: new DateTime().time
