@@ -277,7 +277,7 @@ const app = new Vue({
     },
     deleteFinancialStatement () {
       const id = this.financialStatement.id
-      this.finance.filter(statement => statement.id !== id)
+      this.finance = this.finance.filter(statement => statement.id !== id)
       ipcRenderer.send('finance:update', this.finance)
       this.closeFinanceModal()
     },
