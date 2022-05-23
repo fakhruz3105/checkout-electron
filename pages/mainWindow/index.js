@@ -3,7 +3,7 @@ const { DateTime } = require('../../DateTime')
 
 const app = new Vue({
   data: {
-    page: 'financial-statement',
+    page: 'stock-list',
     items: [],
     customers: {},
     checkoutItems: [],
