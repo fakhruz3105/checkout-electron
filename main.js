@@ -7,6 +7,7 @@ const ejs = require('ejs');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const { DateTime } = require('./DateTime')
+const { exec } = require("child_process")
 
 const { app, BrowserWindow, ipcMain, shell } = electron;
 
@@ -444,6 +445,24 @@ ipcMain.on('finance:update-today-statement', () => {
   checkoutWindow?.webContents.send('finance:fetchAll', finance);
 });
 
+const updateApp = () => {
+  exec('git pull', (error, stdout, stderr) => {
+    if (error) {
+        console.log(`error: ${error.message}`)
+        return
+    }
+    if (stderr) {
+        console.log(`stderr: ${stderr}`)
+        return
+    }
+
+
+  })
+
+  app.relaunch()
+  app.exit()
+}
+
 const mainWindowMenu = [
   {
     label: 'File',
@@ -455,13 +474,14 @@ const mainWindowMenu = [
         }
       },
       {
-        label: 'Stock'
+        label: 'Update',
+        click: updateApp
       },
       {
         label: 'Quit',
         accelerator: 'Ctrl+Q',
         click () {
-          app.quit();
+          app.exit();
         }
       }
     ]
