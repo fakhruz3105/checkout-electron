@@ -444,6 +444,34 @@ ipcMain.on('finance:update-today-statement', () => {
   checkoutWindow?.webContents.send('finance:fetchAll', finance);
 });
 
+const updateApp = () => {
+  exec('git pull origin master', (error, stdout, stderr) => {
+    if (error) {
+        console.log(`error: ${error.message}`)
+        return
+    }
+    if (stderr) {
+        console.log(`stderr: ${stderr}`)
+        return
+    }
+
+    if (stdout.includes('package.json')) {
+      exec('npm install', (error, stdout, stderr) => {
+        if (error) {
+          console.log(`error: ${error.message}`)
+          return
+        }
+        if (stderr) {
+          console.log(`stderr: ${stderr}`)
+          return
+        }
+      })
+    }
+  })
+
+  app.exit()
+}
+
 const mainWindowMenu = [
   {
     label: 'File',
@@ -455,7 +483,10 @@ const mainWindowMenu = [
         }
       },
       {
-        label: 'Stock'
+        label: 'Update',
+        click () {
+          updateApp()
+        }
       },
       {
         label: 'Quit',
