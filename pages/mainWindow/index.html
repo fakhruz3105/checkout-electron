@@ -52,7 +52,7 @@
         </thead>
         <tbody>
           <template v-if="filteredItems.length > 0">
-            <tr v-for="item in filteredItems" :key="item.id" @click="editItem(item.id)">
+            <tr v-for="(item, i) in filteredItems" :key="i" @click="editItem(item.id)">
               <td>{{ item.id }}</td>
               <td>{{ item.name }}</td>
               <td>{{ item.stock }}</td>
@@ -113,7 +113,7 @@
         </thead>
         <tbody>
           <template v-if="outOfStockItems.length > 0">
-            <tr v-for="item in outOfStockItems" :key="item.id" @click="editItem(item.id)">
+            <tr v-for="(item, i) in outOfStockItems" :key="i" @click="editItem(item.id)">
               <td>{{ item.id }}</td>
               <td>{{ item.name }}</td>
               <td>{{ item.stock }}</td>
@@ -226,7 +226,7 @@
           </thead>
           <tbody>
             <template v-if="analyticMostSoldItems.length > 0">
-              <tr v-for="item in analyticMostSoldItems" :key="item.id">
+              <tr v-for="(item, i) in analyticMostSoldItems" :key="i">
                 <td>{{ item.id }}</td>
                 <td>{{ item.name }}</td>
                 <td>{{ item.sold }}</td>
@@ -250,7 +250,7 @@
           </thead>
           <tbody>
             <template v-if="analyticMostProfitableItems.length > 0">
-              <tr v-for="item in analyticMostProfitableItems" :key="item.id">
+              <tr v-for="(item, i) in analyticMostProfitableItems" :key="i">
                 <td>{{ item.id }}</td>
                 <td>{{ item.name }}</td>
                 <td>{{ item.profit.toFixed(2) }}</td>
@@ -289,7 +289,7 @@
         </thead>
         <tbody>
           <template v-if="financeFiltered.length > 0">
-            <tr v-for="item in financeFiltered" :key="item.id" @click="editFinancialStatement(item)">
+            <tr v-for="(item, i) in financeFiltered" :key="i" @click="editFinancialStatement(item)">
               <td>{{ item.description }}</td>
               <template v-if="item.value >= 0">
                 <td style="color: green; text-align: center;">{{ item.absValue.toFixed(2) }}</td>
