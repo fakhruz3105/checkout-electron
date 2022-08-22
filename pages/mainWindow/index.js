@@ -35,9 +35,57 @@ const app = new Vue({
       timestamp: new DateTime().time,
       created: new DateTime().time,
       updated: new DateTime().time
-    }
+    },
+    borrowers: {},
+    showAddBorrowerModal: false,
+    newBorrower: {
+      name: '',
+      pastRecord: 0
+    },
+    showPaymentModal: false,
+    newPayment: 0
   },
   computed: {
+    listOfBorrowers () {
+      return Object.keys(this.borrowers).map(key => {
+        const pastRecord = this.borrowers[key].pastRecord
+        const currentRecord = this.borrowers[key].receipts.map(receipt => receipt.total).reduce((a, b) => a + b, 0)
+        const paid = this.borrowers[key].payments.map(p => p.total).reduce((a, b) => a + b, 0)
+        const totalBorrowed = (pastRecord + currentRecord) - paid
+        return {
+          name: key,
+          totalBorrowed
+        }
+      })
+    },
+    selectedBorrowerName () {
+      if (!this.page.startsWith('borrower-id')) return null
+      const [_a, _b, borrowerId] = this.page.split('-')
+      return borrowerId
+    },
+    selectedBorrower () {
+      if (!this.selectedBorrowerName) return null
+      return this.borrowers[this.selectedBorrowerName]
+    },
+    selectedBorrowerReceipts () {
+      return this.selectedBorrower.receipts.sort((a, b) => b.datetime - a.datetime)
+    },
+    selectedBorrowerReceiptsTotal () {
+      return this.selectedBorrower.receipts.map(r => r.total).reduce((a, b) => a + b, 0)
+    },
+    selectedBorrowerPayments () {
+      return this.selectedBorrower.payments.sort((a, b) => b.time - a.time)
+    },
+    selectedBorrowerPaymentsTotal () {
+      return this.selectedBorrower.payments.map(r => r.total).reduce((a, b) => a + b, 0)
+    },
+    selectedBorrowerTotalBorrowed () {
+      if (!this.selectedBorrower) return 0
+      const pastRecord = this.selectedBorrower.pastRecord
+      const currentRecord = this.selectedBorrower.receipts.map(receipt => receipt.total).reduce((a, b) => a + b, 0)
+      const paid = this.selectedBorrower.payments.map(p => p.total).reduce((a, b) => a + b, 0)
+      return (pastRecord + currentRecord) - paid
+    },
     outOfStockItems () {
       return this.filteredItems.filter(item => item.stock < 10)
     },
@@ -80,14 +128,17 @@ const app = new Vue({
       }
     },
     getAllDaysShopOpen () {
-      return Object.keys(this.customers).reverse();
+      const days = Object.keys(this.customers)
+      days.reverse()
+      return days
     },
     getReceiptsForSpecificDay () {
       return this.customers[this.receiptDay].filter(customer => customer.id.includes(this.search));
     },
     getReceiptsForSpecificDayInReverse () {
       const receiptsInReverse = [...this.getReceiptsForSpecificDay];
-      return receiptsInReverse.reverse();
+      receiptsInReverse.reverse();
+      return receiptsInReverse;
     },
     getTotalSaleForTheDay () {
       const customersForTheDay = this.getReceiptsForSpecificDay;
@@ -215,6 +266,31 @@ const app = new Vue({
     }
   },
   methods: {
+    saveNewPayment () {
+      if (!this.selectedBorrowerName) return
+      ipcRenderer.send('borrowers:pay', this.selectedBorrowerName, this.newPayment)
+      this.fetchAllBorrowers()
+      this.closePaymentModal()
+    },
+    closePaymentModal () {
+      this.newPayment = 0
+      this.showPaymentModal = false
+    },
+    selectBorrower (name) {
+      this.page = `borrower-id-${name}`
+    },
+    saveNewBorrower () {
+      ipcRenderer.send('borrowers:new', this.newBorrower.name, this.newBorrower.pastRecord)
+      this.fetchAllBorrowers()
+      this.closeAddBorrower()
+    },
+    closeAddBorrower () {
+      this.showAddBorrowerModal = false
+      this.newBorrower = {
+        name: '',
+        pastRecord: 0
+      }
+    },
     setFinancialStatementDate (date) {
       this.financialStatement.timestamp = new DateTime(date).time
     },
@@ -311,7 +387,11 @@ const app = new Vue({
     },
     getFormattedTime (timestamp) {
       const date = new DateTime(timestamp);
-      return date.format('HH:MM:ss')
+      return date.format('HH:mm:ss')
+    },
+    getFormattedDateTime (timestamp) {
+      const date = new DateTime(timestamp);
+      return date.format('DD/MM/YYYY (HH:mm:ss)')
     },
     getFormattedDate (timestamp) {
       const date = new DateTime(timestamp);
@@ -334,6 +414,9 @@ const app = new Vue({
     },
     fetchAllFinances () {
       ipcRenderer.send('finance:fetchAll');
+    },
+    fetchAllBorrowers () {
+      ipcRenderer.send('borrowers:list');
     },
     editItem (id) {
       this.selectedItemId = id;
@@ -413,36 +496,6 @@ const app = new Vue({
     removeCheckoutItem (index) {
       this.checkoutItems.splice(index, 1);
     },
-    async checkout () {
-      if (this.checkoutItems.length > 0) {
-        if (confirm('Teruskan checkout?')) {
-          this.checkoutItems.forEach(item => {
-            if (item.id !== '-') {
-              this.items.forEach(stockItem => {
-                if (item.id == stockItem.id) {
-                  stockItem.stock -= item.stock;
-                }
-              });
-            }
-          });
-          ipcRenderer.send('customer:new', {
-            items: this.checkoutItems,
-            total: this.getAbsoluteTotal()
-          });
-          ipcRenderer.send('item:update', this.items);
-          this.fetchAll();
-          this.fetchAllCustomers();
-          await new Promise((resolve) => {
-            setTimeout(() => {
-              resolve();
-            }, 200);
-          });
-          this.showCheckoutModal = false;
-          this.viewedReceipt = this.getLastReceipt;
-          this.showReceiptModal = true;
-        }
-      }
-    },
     async openAddStockModal () {
       this.newStockItems = [{
         id: '',
@@ -503,7 +556,6 @@ const app = new Vue({
         })
 
         for (const item of listToBeAdded) {
-          console.log('item >>', item)
           if (!item.id || !item.name || !item.stock || !item.price || item.id === '' || item.name === '') {
             alert('Sila isi semua tempat!');
             return;
@@ -577,6 +629,9 @@ const app = new Vue({
     });
     ipcRenderer.on('finance:fetchAll', (e, finance) => {
       this.finance = finance
+    });
+    ipcRenderer.on('borrowers:list', (e, borrowers) => {
+      this.borrowers = borrowers
     });
   },
   beforeMount () {

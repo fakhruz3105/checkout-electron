@@ -187,6 +187,10 @@ app.on('ready', () => {
     store.set('finance', []);
   }
 
+  if (!store.get('borrowers')) {
+    store.set('borrowers', {});
+  }
+
   const todayDate = dateConverter(new DateTime());
   const allCustomers = store.get('customers');
   const todaysCustomer = allCustomers[todayDate];
@@ -330,30 +334,35 @@ const receiptIdGenerator = () => {
   return date.format('DDMMYYYY')
 }
 
-ipcMain.on('customer:new', (e, newCustomer) => {
+ipcMain.on('customer:new', (e, _newCustomer) => {
   const timestamp = new DateTime();
   const day = dateConverter(timestamp);
   const customers = store.get('customers');
+  const { borrowerName, ...newCustomer } = _newCustomer
+  const receipt = {
+    id: !customers[day] ? `${receiptIdGenerator()}-1` : `${receiptIdGenerator()}-${customers[day].length + 1}`,
+    datetime: timestamp.time,
+    ...newCustomer
+  }
 
   if (!customers[day]) {
-    customers[day] = [
-      {
-        id: `${receiptIdGenerator()}-1`,
-        datetime: timestamp.time,
-        ...newCustomer
-      }
-    ]
+    customers[day] = [receipt]
   } else {
-    customers[day].push(
-      {
-        id: `${receiptIdGenerator()}-${customers[day].length + 1}`,
-        datetime: timestamp,
-        ...newCustomer
-      }
-    )
+    customers[day].push(receipt)
   }
 
   store.set('customers', customers);
+
+  if (borrowerName) {
+    const borrowers = store.get('borrowers');
+    const borrower = borrowers[borrowerName];
+
+    if (borrower) {
+      borrower.receipts.push(receipt)
+    }
+
+    store.set('borrowers', borrowers);
+  }
 });
 
 ipcMain.on('customer:fetchAll', () => {
@@ -443,6 +452,43 @@ ipcMain.on('finance:update-today-statement', () => {
   mainWindow.webContents.send('finance:fetchAll', finance);
   checkoutWindow?.webContents.send('finance:fetchAll', finance);
 });
+
+ipcMain.on('borrowers:new', (_, borrowerName, pastRecord = 0) => {
+  const borrowers = store.get('borrowers');
+  const borrower = borrowers[borrowerName]
+  if (!borrower) {
+    borrowers[borrowerName] = {
+      pastRecord,
+      receipts: [],
+      payments: []
+    }
+    store.set('borrowers', borrowers)
+  }
+});
+
+ipcMain.on('borrowers:pay', (_, borrowerName, total) => {
+  const borrowers = store.get('borrowers');
+  const borrower = borrowers[borrowerName]
+  if (borrower) {
+    const payment = {
+      id: Math.random().toString(16).slice(2),
+      time: new DateTime().time,
+      total
+    }
+    borrower.payments.push(payment)
+  }
+  store.set('borrowers', borrowers)
+})
+
+ipcMain.on('borrowers:list', () => {
+  const borrowers = store.get('borrowers');
+  mainWindow.webContents.send('borrowers:list', borrowers);
+  checkoutWindow?.webContents.send('borrowers:list', borrowers);
+});
+
+ipcMain.on('borrowers:update', (_, borrowers) => {
+  store.set('borrowers', borrowers)
+})
 
 const updateApp = () => {
   exec('git pull origin master', (error, stdout, stderr) => {

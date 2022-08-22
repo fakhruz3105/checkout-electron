@@ -9,15 +9,22 @@ const app = new Vue({
     checkoutItems: [],
     newStockItems: [],
     viewedReceipt: {},
+    borrowers: {},
     search: '',
     selectedItemId: '',
     showCheckoutModal: false,
     showAddStockModal: false,
     showEditStockModal: false,
     showReceiptModal: false,
-    showAllReceipt: false
+    showAllReceipt: false,
+    choosePayment: false,
+    cashPayment: true,
+    selectedBorrower: '',
   },
   computed: {
+    borrowersOptions () {
+      return Object.keys(this.borrowers)
+    },
     outOfStockItems () {
       return this.filteredItems.filter(item => item.stock < 10)
     },
@@ -52,8 +59,14 @@ const app = new Vue({
     }
   },
   methods: {
+    selectPaymentType () {
+      if (this.checkoutItems.length > 0) {
+        this.cashPayment = true
+        this.choosePayment = true
+        this.selectedBorrower = ''
+      }
+    },
     closeAnyModal () {
-      console.log('object');
       this.showEditStockModal = false;
       this.showReceiptModal = false;
       this.showCheckoutModal = false;
@@ -65,7 +78,7 @@ const app = new Vue({
     },
     getFormattedTime (timestamp) {
       const date = new DateTime(timestamp);
-      return date.format('HH:MM:ss')
+      return date.format('HH:mm:ss')
     },
     getFormattedDate (timestamp) {
       const date = new DateTime(timestamp);
@@ -106,6 +119,9 @@ const app = new Vue({
     },
     fetchAllCustomers () {
       ipcRenderer.send('customer:fetchAll');
+    },
+    fetchAllBorrowers () {
+      ipcRenderer.send('borrowers:list');
     },
     editItem (id) {
       this.selectedItemId = id;
@@ -219,11 +235,13 @@ const app = new Vue({
           ipcRenderer.send('customer:new', {
             items: this.checkoutItems,
             total: this.getAbsoluteTotal(),
-            profit: this.getProfitTotal()
+            profit: this.getProfitTotal(),
+            borrowerName: !this.cashPayment ? this.selectedBorrower : null
           });
           ipcRenderer.send('item:update', this.items);
           this.fetchAll();
           this.fetchAllCustomers();
+          this.fetchAllBorrowers();
           await new Promise((resolve) => {
             setTimeout(() => {
               resolve();
@@ -231,6 +249,7 @@ const app = new Vue({
           });
           this.viewedReceipt = this.getLastReceipt;
           this.showReceiptModal = true;
+          this.choosePayment = false;
           this.checkoutItems = []
         }
       }
@@ -351,10 +370,20 @@ const app = new Vue({
       }
       ipcRenderer.send('folder:open', filePath)
     });
+    ipcRenderer.on('customer:receipt', (e, success, filePath) => {
+      if (!success) {
+        alert('Error on generating receipt') 
+      }
+      ipcRenderer.send('folder:open', filePath)
+    });
+    ipcRenderer.on('borrowers:list', (_, borrowers) => {
+      this.borrowers = borrowers
+    });
   },
   beforeMount () {
     this.fetchAll();
     this.fetchAllCustomers();
+    this.fetchAllBorrowers();
   },
   mounted () {
   }

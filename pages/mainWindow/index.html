@@ -34,6 +34,9 @@
           <li :class="{ 'nav-item': true, 'active-page': page === 'financial-statement' }">
             <a @click="changePage('financial-statement')"><span>Penyata Kewangan</span></a>
           </li>
+          <li :class="{ 'nav-item': true, 'active-page': page === 'borrower' }">
+            <a @click="changePage('borrower')"><span>Hutang</span></a>
+          </li>
         </ul>
       </div>
     </header>
@@ -308,66 +311,127 @@
         </tbody>
       </table>
     </div>
-    <div @click="closeCheckoutModal" v-if="showCheckoutModal" class="modal-background">
+    <div v-else-if="page === 'borrower'" class="container">
+      <input v-model="search" id="search" type="search" placeholder="Search">
+      <table id="all" class="item-list">
+        <caption><span>Senarai Hutang</span><button style="margin-left: 1rem;" @click="showAddBorrowerModal = true">+</button></caption>
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Baki Hutang (RM)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="listOfBorrowers.length > 0">
+            <tr v-for="(borrower, i) in listOfBorrowers" :key="i" @click="selectBorrower(borrower.name)">
+              <td>{{ borrower.name }}</td>
+              <td>{{ borrower.totalBorrowed.toFixed(2) }}</td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr>
+              <td style="text-align: center;" colspan="2">-- NONE --</td>
+            </tr>
+        </template>
+        </tbody>
+      </table>
+    </div>
+    <div v-else-if="page.startsWith('borrower-id')" class="container">
+      <h2>{{ selectedBorrowerName }} (Jumlah Hutang: RM{{ selectedBorrowerTotalBorrowed.toFixed(2) }})</h2>
+      <table class="receipt-list" style="margin: 1rem 0 0 0;">
+        <caption><span>Senarai Resit Hutang</span></caption>
+        <thead>
+          <tr>
+            <th>ID Resit</th>
+            <th>Masa</th>
+            <th>Total (RM)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="selectedBorrowerReceipts.length > 0">
+            <tr v-for="(receipt, index) in selectedBorrowerReceipts" :key="index" @click="viewReceipt(receipt)">
+              <td>{{ receipt.id }}</td>
+              <td>{{ getFormattedDateTime(receipt.datetime) }}</td>
+              <td>{{ `RM${receipt.total.toFixed(2)}` }}</td>
+            </tr>
+            <tr>
+              <td style="text-align: center;" colspan="2">Total: </td>
+              <td>{{ `RM${selectedBorrowerReceiptsTotal.toFixed(2)}` }}</td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr>
+              <td colspan="3">-- No Receipt --</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <table class="receipt-list" style="margin: 1rem 0 0 0;">
+        <caption><span>Senarai Pembayaran</span><button style="margin-left: 1rem;" @click="showPaymentModal = true">+</button></caption>
+        <thead>
+          <tr>
+            <th>ID Pembayaran</th>
+            <th>Masa</th>
+            <th>Jumlah (RM)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="selectedBorrowerPayments.length > 0">
+            <tr v-for="(payment, index) in selectedBorrowerPayments" :key="index">
+              <td>{{ payment.id }}</td>
+              <td>{{ getFormattedDateTime(payment.time) }}</td>
+              <td>{{ `RM${payment.total.toFixed(2)}` }}</td>
+            </tr>
+            <tr>
+              <td style="text-align: center;" colspan="2">Total: </td>
+              <td>{{ `RM${selectedBorrowerPaymentsTotal.toFixed(2)}` }}</td>
+            </tr>
+          </template>
+          <template v-else>
+            <tr>
+              <td colspan="3">-- No Receipt --</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+    <div @click="closePaymentModal" v-if="showPaymentModal" class="modal-background">
       <div @click.stop class="modal">
         <div class="modal-header">
-          <p><strong>Checkout</strong></p>
-          <p @click="closeCheckoutModal" class="close-modal-btn">x</p>
+          <p><strong>Bayar Hutang</strong></p>
+          <p @click="closePaymentModal" class="close-modal-btn">x</p>
         </div>
         <div class="modal-body">
-          <div class="checkout-input">
-            <div style="width: 65%;">
-              <span>Barcode: </span><input ref="itemId" @keyup.enter="addToCheckout" type="text" placeholder="Barcode">
-            </div>
-            <div style="width: 30%;">
-              <span>Bilangan: </span><input @keyup.enter="addToCheckout" ref="amount" type="number" placeholder="Bilangan">
-            </div>
+          <div style="display: flex; justify-items: stretch;">
+            <label>Jumlah: </label>
+            <input type="number" v-model.number="newPayment">
           </div>
-          <div class="checkout-input">
-            <div style="width: 65%;">
-              <span>Nama: </span><input ref="itemName" @keyup.enter="addUnlistedItemToCheckout" type="text" placeholder="Nama">
-            </div>
-            <div style="width: 30%;">
-              <span>Harga(RM): </span><input @keyup.enter="addUnlistedItemToCheckout" ref="price" type="number" placeholder="RM0.00">
-            </div>
-          </div>
-          <table>
-            <caption>Senarai Barang</caption>
-            <thead>
-              <tr>
-                <th style="width: 10%;">Barcode</th>
-                <th style="width: 60%;">Nama</th>
-                <th style="width: 15%;">Bilangan</th>
-                <th colspan="2">Jumlah(RM)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-if="getCheckoutItems.length > 0">
-                <tr v-for="(item, index) in getCheckoutItems" :key="index">
-                  <td>{{ item.id }}</td>
-                  <td>{{ item.name }}</td>
-                  <template v-if="item.id !== '-'">
-                    <td style="width: 15%;"><input type="number" v-model.number="item.stock"></td>
-                    <td style="width: 15%;">{{ getTotal(item).toFixed(2).toString() }}</td>
-                  </template>
-                  <template v-else>
-                    <td>{{ item.stock }}</td>
-                    <td style="width: 15%;"><input type="number" v-model.number="item.price"></td>
-                  </template>
-                  <td style="color:red; text-align: center; cursor: pointer;" @click="removeCheckoutItem(index)">x</td>
-                </tr>
-              </template>
-              <template v-else>
-                <tr>
-                  <td style="text-align: center;" colspan="5">No items</td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
         </div>
-        <div class="modal-footer">
-          <p><strong>{{ `Total: RM ${getAbsoluteTotal().toFixed(2).toString()}` }}</strong></p>
-          <button @click="checkout">Checkout</button>
+        <div class="modal-footer" style="justify-content: flex-end;">
+          <button @click="saveNewPayment">Simpan</button>
+        </div>
+      </div>
+    </div>
+    <div @click="closeAddBorrower" v-if="showAddBorrowerModal" class="modal-background">
+      <div @click.stop class="modal">
+        <div class="modal-header">
+          <p><strong>Detail Penghutang</strong></p>
+          <p @click="closeAddBorrower" class="close-modal-btn">x</p>
+        </div>
+        <div class="modal-body">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 1rem;">
+            <div style="grid-column: 1/3; display: flex; justify-items: stretch;">
+              <label>Nama:</label>
+              <input type="text" v-model="newBorrower.name">
+            </div>
+            <div style="grid-column: 3/4; display: flex; justify-items: stretch;">
+              <label>Hutang Semasa:</label>
+              <input type="number" v-model.number="newBorrower.pastRecord">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content: flex-end;">
+          <button @click="saveNewBorrower">Simpan</button>
         </div>
       </div>
     </div>

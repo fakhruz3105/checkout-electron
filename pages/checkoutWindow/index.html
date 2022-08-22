@@ -13,7 +13,7 @@
       <div class="modal-header">
         <p><strong>Checkout</strong></p>
         <p><strong>{{ `Total: RM ${getAbsoluteTotal().toFixed(2).toString()}` }}</strong></p>
-        <button @click="checkout">Checkout</button>
+        <button @click="selectPaymentType">Checkout</button>
       </div>
       <div class="modal-body">
         <div class="checkout-input">
@@ -70,6 +70,26 @@
             </template>
           </tbody>
         </table>
+      </div>
+    </div>
+    <div @click="choosePayment = false" v-if="choosePayment" class="modal-background">
+      <div @click.stop class="modal">
+        <div class="modal-header">
+          <p><strong>Pilih Jenis Pembayaran</strong></p>
+          <p @click="choosePayment = false" class="close-modal-btn">x</p>
+        </div>
+        <div class="modal-body">
+          <div style="display: flex; justify-content: center; align-items: center;">
+            <button :style="{ 'margin': '0 1rem', 'background': cashPayment ? 'green' : 'red' }" @click="cashPayment = true">Cash</button>
+            <button :style="{ 'margin': '0 1rem', 'background': cashPayment ? 'red' : 'green' }" @click="cashPayment = false">Hutang</button>
+          </div>
+          <select style="margin-top: 1rem;" v-if="!cashPayment" v-model="selectedBorrower">
+            <option v-for="borrower in borrowersOptions" :value="borrower">{{ borrower }}</option>
+          </select>
+        </div>
+        <div class="modal-footer" style="justify-content: flex-end;">
+          <button @click="checkout">Teruskan?</button>
+        </div>
       </div>
     </div>
     <div @click="closeReceiptModal" v-if="showReceiptModal && viewedReceipt !== {}" class="modal-background">
