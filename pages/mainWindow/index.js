@@ -269,7 +269,6 @@ const app = new Vue({
     saveNewPayment () {
       if (!this.selectedBorrowerName) return
       ipcRenderer.send('borrowers:pay', this.selectedBorrowerName, this.newPayment)
-      this.fetchAllBorrowers()
       this.closePaymentModal()
     },
     closePaymentModal () {
@@ -637,7 +636,8 @@ const app = new Vue({
   beforeMount () {
     this.fetchAll();
     this.fetchAllCustomers();
-    this.fetchAllFinances()
+    this.fetchAllFinances();
+    this.fetchAllBorrowers();
   },
   mounted () {
   }

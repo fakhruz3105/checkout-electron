@@ -338,6 +338,7 @@ ipcMain.on('customer:new', (e, _newCustomer) => {
   const timestamp = new DateTime();
   const day = dateConverter(timestamp);
   const customers = store.get('customers');
+  const borrowers = store.get('borrowers');
   const { borrowerName, ...newCustomer } = _newCustomer
   const receipt = {
     id: !customers[day] ? `${receiptIdGenerator()}-1` : `${receiptIdGenerator()}-${customers[day].length + 1}`,
@@ -351,18 +352,20 @@ ipcMain.on('customer:new', (e, _newCustomer) => {
     customers[day].push(receipt)
   }
 
-  store.set('customers', customers);
-
   if (borrowerName) {
-    const borrowers = store.get('borrowers');
     const borrower = borrowers[borrowerName];
+
+    receipt['metadata'] = {
+      borrowed: true
+    }
 
     if (borrower) {
       borrower.receipts.push(receipt)
     }
-
-    store.set('borrowers', borrowers);
   }
+
+  store.set('borrowers', borrowers);
+  store.set('customers', customers);
 });
 
 ipcMain.on('customer:fetchAll', () => {
@@ -408,7 +411,7 @@ ipcMain.on('finance:update-today-statement', () => {
   })
 
   const todayCustomers = allCustomers[todayDate]
-  const todayValue = todayCustomers.map(e => e.total).reduce((a, b) => {
+  const todayValue = todayCustomers.filter(e => !e.metadata ? true : !e.metadata.borrowed).map(e => e.total).reduce((a, b) => {
     return parseFloat((a + b).toFixed(2))
   }, 0)
 
@@ -468,16 +471,39 @@ ipcMain.on('borrowers:new', (_, borrowerName, pastRecord = 0) => {
 
 ipcMain.on('borrowers:pay', (_, borrowerName, total) => {
   const borrowers = store.get('borrowers');
+  const finance = store.get('finance');
   const borrower = borrowers[borrowerName]
   if (borrower) {
+    const time = new DateTime().time
+
     const payment = {
       id: Math.random().toString(16).slice(2),
-      time: new DateTime().time,
+      time,
       total
     }
+
+    const newFinanceObj = {
+      id: Math.random().toString(16).slice(2),
+      description: `${borrowerName} bayar hutang`,
+      value: total,
+      metadata: {
+        updateable: false
+      },
+      timestamp: time,
+      created: time,
+      updated: time
+    }
+
     borrower.payments.push(payment)
+    finance.push(newFinanceObj)
   }
+  store.set('finance', finance)
   store.set('borrowers', borrowers)
+  
+  mainWindow.webContents.send('finance:fetchAll', finance);
+  checkoutWindow?.webContents.send('finance:fetchAll', finance);
+  mainWindow.webContents.send('borrowers:list', borrowers);
+  checkoutWindow?.webContents.send('borrowers:list', borrowers);
 })
 
 ipcMain.on('borrowers:list', () => {
