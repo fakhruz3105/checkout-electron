@@ -213,7 +213,7 @@ app.on('ready', () => {
       })
 
       const yesterdayCustomers = allCustomers[yesterdayDate]
-      const yesterdayValue = yesterdayCustomers.map(e => e.total).reduce((a, b) => {
+      const yesterdayValue = yesterdayCustomers.filter(e => !e.metadata?.borrowed).map(e => e.total).reduce((a, b) => {
         return parseFloat((a + b).toFixed(2))
       }, 0)
 
@@ -411,7 +411,7 @@ ipcMain.on('finance:update-today-statement', () => {
   })
 
   const todayCustomers = allCustomers[todayDate]
-  const todayValue = todayCustomers.filter(e => !e.metadata ? true : !e.metadata.borrowed).map(e => e.total).reduce((a, b) => {
+  const todayValue = todayCustomers.filter(e => !e.metadata?.borrowed).map(e => e.total).reduce((a, b) => {
     return parseFloat((a + b).toFixed(2))
   }, 0)
 
