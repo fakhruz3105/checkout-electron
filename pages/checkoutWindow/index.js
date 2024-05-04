@@ -245,7 +245,7 @@ const app = new Vue({
           await new Promise((resolve) => {
             setTimeout(() => {
               resolve();
-            }, 200);
+            }, 1000);
           });
           this.viewedReceipt = this.getLastReceipt;
           this.showReceiptModal = true;

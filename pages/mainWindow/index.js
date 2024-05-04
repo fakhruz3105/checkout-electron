@@ -193,24 +193,28 @@ const app = new Vue({
       const soldItemsCount = {}
       soldItems.forEach(item => {
         let count = soldItemsCount[item.id] || 0
-        soldItemsCount[item.id] = count + item.stock
+        soldItemsCount[item.id] = parseInt(count) + parseInt(item.stock)
       })
       return soldItemsCount
     },
     analyticMostSoldItems () {
       const mostSoldItems = Object.keys(this.analyticSoldItemsCount).map(id => {
         const item = this.items.find(item => item.id === id)
+        if (!item) return
         return {
           id,
           name: item.name,
           sold: this.analyticSoldItemsCount[id]
         }
-      }).sort((a, b) => b.sold - a.sold)
+      })
+      .filter(e => e)
+      .sort((a, b) => b.sold - a.sold)
       return mostSoldItems.slice(0, 15)
     },
     analyticMostProfitableItems () {
       const mostSoldItems = Object.keys(this.analyticSoldItemsCount).map(id => {
         const item = this.items.find(item => item.id === id)
+        if (!item) return
         const profitPerItem = item.sold || item.sold === 0 ? (item.price / 1.1) * 0.1 : item.price - item.sold
         const profit = profitPerItem * this.analyticSoldItemsCount[id]
         return {
@@ -218,7 +222,9 @@ const app = new Vue({
           name: item.name,
           profit
         }
-      }).sort((a, b) => b.profit - a.profit)
+      })
+      .filter(e => e)
+      .sort((a, b) => b.profit - a.profit)
       return mostSoldItems.slice(0, 15)
     },
     financialStatementFromTime () {
