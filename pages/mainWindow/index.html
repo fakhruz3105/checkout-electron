@@ -225,6 +225,7 @@
               <th>Barcode</th>
               <th>Nama Barang</th>
               <th>Jumlah Terjual</th>
+              <th>Jumlah Untung</th>
             </tr>
           </thead>
           <tbody>
@@ -233,6 +234,7 @@
                 <td>{{ item.id }}</td>
                 <td>{{ item.name }}</td>
                 <td>{{ item.sold }}</td>
+                <td>{{ inRM(item.profit) }}</td>
               </tr>
             </template>
             <template v-else>
@@ -249,6 +251,7 @@
               <th>Barcode</th>
               <th>Nama Barang</th>
               <th>Jumlah Untung</th>
+              <th>Jumlah Terjual</th>
             </tr>
           </thead>
           <tbody>
@@ -256,7 +259,8 @@
               <tr v-for="(item, i) in analyticMostProfitableItems" :key="i">
                 <td>{{ item.id }}</td>
                 <td>{{ item.name }}</td>
-                <td>{{ item.profit.toFixed(2) }}</td>
+                <td>{{ inRM(item.profit) }}</td>
+                <td>{{ item.sold }}</td>
               </tr>
             </template>
             <template v-else>

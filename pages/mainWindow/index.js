@@ -201,10 +201,13 @@ const app = new Vue({
       const mostSoldItems = Object.keys(this.analyticSoldItemsCount).map(id => {
         const item = this.items.find(item => item.id === id)
         if (!item) return
+        const profitPerItem = item.sold || item.sold === 0 ? (item.price / 1.1) * 0.1 : item.price - item.sold
+        const profit = profitPerItem * this.analyticSoldItemsCount[id]
         return {
           id,
           name: item.name,
-          sold: this.analyticSoldItemsCount[id]
+          sold: this.analyticSoldItemsCount[id],
+          profit
         }
       })
       .filter(e => e)
@@ -220,6 +223,7 @@ const app = new Vue({
         return {
           id,
           name: item.name,
+          sold: this.analyticSoldItemsCount[id],
           profit
         }
       })
