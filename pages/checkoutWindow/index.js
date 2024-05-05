@@ -6,6 +6,7 @@ const app = new Vue({
     page: 'stock-list',
     items: [],
     customers: {},
+    customersFetched: true,
     checkoutItems: [],
     newStockItems: [],
     viewedReceipt: {},
@@ -118,6 +119,7 @@ const app = new Vue({
       ipcRenderer.send('item:fetchAll');
     },
     fetchAllCustomers () {
+      this.customersFetched = false;
       ipcRenderer.send('customer:fetchAll');
     },
     fetchAllBorrowers () {
@@ -243,9 +245,11 @@ const app = new Vue({
           this.fetchAllCustomers();
           this.fetchAllBorrowers();
           await new Promise((resolve) => {
-            setTimeout(() => {
-              resolve();
-            }, 1000);
+            setInterval(() => {
+              if (this.customersFetched) {
+                resolve();
+              }
+            }, 100);
           });
           this.viewedReceipt = this.getLastReceipt;
           this.showReceiptModal = true;
@@ -357,6 +361,7 @@ const app = new Vue({
     });
     ipcRenderer.on('customer:fetchAll', (e, customers) => {
       this.customers = customers;
+      this.customersFetched = true;
     });
     ipcRenderer.on('item:generateStockListPdf', (e, success, filePath) => {
       if (!success) {
