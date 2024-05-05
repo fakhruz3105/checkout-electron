@@ -264,6 +264,15 @@ const app = new Vue({
         .sort((a, b) => {
           return b.timestamp - a.timestamp || b.created - a.created
         })
+    },
+    financeFilteredDebitTotal () {
+      return this.financeFiltered.filter(e => e.value >= 0).map(e => e.value).reduce((a, b) => a + b, 0);
+    },
+    financeFilteredCreditTotal () {
+      return Math.abs(this.financeFiltered.filter(e => e.value < 0).map(e => e.value).reduce((a, b) => a + b, 0));
+    },
+    financeFilteredBalance () {
+      return this.financeFilteredDebitTotal - this.financeFilteredCreditTotal;
     }
   },
   watch: {
@@ -272,6 +281,9 @@ const app = new Vue({
     }
   },
   methods: {
+    inRM (num) {
+      return `RM${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    },
     saveNewPayment () {
       if (!this.selectedBorrowerName) return
       ipcRenderer.send('borrowers:pay', this.selectedBorrowerName, this.newPayment)

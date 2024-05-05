@@ -270,13 +270,20 @@
     </div>
     <div v-else-if="page === 'financial-statement'" class="container">
       <h2>Penyata Kewangan</h2>
-      <p style="margin-top: 1rem;">Kewangan Semasa: RM{{ currentMoneyTotal.toFixed(2) }}</p>
+      <p style="margin-top: 1rem;">Kewangan Semasa: {{ inRM(currentMoneyTotal) }}</p>
       <div style="display: flex; align-items: center; margin: 1rem 0;">
         <p>Dari</p>
         <input style="width: 300px; margin: 0 1rem;" type="date" v-model="financialStatementFrom">
         <p>Hingga</p>
         <input style="width: 300px; margin: 0 1rem;" type="date" v-model="financialStatementTo">
       </div>
+      <table style="table-layout: fixed;">
+        <tr>
+          <td style="text-align: center; background-color: white; padding: 5px; color: green;">Jumlah Debit: {{ inRM(financeFilteredDebitTotal) }}</td>
+          <td style="text-align: center; background-color: white; padding: 5px; color: red;">Jumlah Kredit: {{ inRM(financeFilteredCreditTotal) }}</td>
+          <td style="text-align: center; background-color: white; padding: 5px;">Baki: {{ inRM(financeFilteredBalance) }}</td>
+        </tr>
+      </table>
       <table class="item-list">
         <caption>
           <span>Senarai Penyata</span>
@@ -295,10 +302,10 @@
             <tr v-for="(item, i) in financeFiltered" :key="i" @click="editFinancialStatement(item)">
               <td>{{ item.description }}</td>
               <template v-if="item.value >= 0">
-                <td style="color: green; text-align: center;">{{ item.absValue.toFixed(2) }}</td>
+                <td style="color: green; text-align: center;">{{ inRM(item.absValue) }}</td>
               </template>
               <template v-else>
-                <td style="color: red; text-align: center;">{{ item.absValue.toFixed(2) }}</td>
+                <td style="color: red; text-align: center;">{{ inRM(item.absValue) }}</td>
               </template>
               <td style="text-align: center;">{{ item.date }}</td>
             </tr>
