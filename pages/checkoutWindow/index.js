@@ -35,6 +35,9 @@ const app = new Vue({
     getCheckoutItems () {
       return this.checkoutItems;
     },
+    checkoutItemsTotal () {
+      return this.checkoutItems.map(e => this.getTotal(e)).reduce((a, b) => a + b, 0);
+    },
     getNewStockItems () {
       return this.newStockItems;
     },
@@ -60,6 +63,9 @@ const app = new Vue({
     }
   },
   methods: {
+    inRM (num) {
+      return `RM${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    },
     selectPaymentType () {
       if (this.checkoutItems.length > 0) {
         this.cashPayment = true

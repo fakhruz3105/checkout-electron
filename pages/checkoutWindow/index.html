@@ -38,7 +38,12 @@
           </div>
         </div>
         <table>
-          <caption>Senarai Barang</caption>
+          <caption>
+            <div style="display: flex; justify-content: space-between;">
+              <p>Senarai Barang</p>
+              <p>Jumlah semua: {{ inRM(checkoutItemsTotal) }}</p>
+            </div>
+          </caption>
           <thead>
             <tr>
               <th style="width: 10%;">Barcode</th>
@@ -54,7 +59,7 @@
                 <td>{{ item.name }}</td>
                 <template v-if="item.id !== '-'">
                   <td style="width: 15%;"><input type="number" v-model.number="item.stock"></td>
-                  <td style="width: 15%;">{{ getTotal(item).toFixed(2).toString() }}</td>
+                  <td style="width: 15%;">{{ inRM(getTotal(item)) }}</td>
                 </template>
                 <template v-else>
                   <td>{{ item.stock }}</td>
