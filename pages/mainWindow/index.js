@@ -273,11 +273,68 @@ const app = new Vue({
     },
     financeFilteredBalance () {
       return this.financeFilteredDebitTotal - this.financeFilteredCreditTotal;
+    },
+    totalSalesWithinRange () {
+      if (this.financialStatementFrom && this.financialStatementTo) {
+        let start = new DateTime(this.financialStatementFrom);
+        let startDate = this.getFormattedDate(start);
+        const end = new DateTime(this.financialStatementTo);
+        const endDate = this.getFormattedDate(end);
+        let totalSales = this.customers[startDate].map(e => e.total).reduce((a, b) => a + b, 0);
+
+        while (startDate !== endDate) {
+          start = new DateTime(start).add(1, 'day');
+          startDate = this.getFormattedDate(start);
+
+          if (this.customers[startDate]) {
+            const daySales = this.customers[startDate].map(e => e.total).reduce((a, b) => a + b, 0);
+            totalSales += daySales;
+          }
+        }
+
+        return totalSales;
+      } else {
+        return Object.values(this.customers)
+          .map(e => {
+            return e.map(f => f.total).reduce((a, b) => a + b, 0);
+          })
+          .reduce((a, b) => a + b, 0);
+      }
+    },
+    totalProfitWithinRange () {
+      if (this.financialStatementFrom && this.financialStatementTo) {
+        let start = new DateTime(this.financialStatementFrom);
+        let startDate = this.getFormattedDate(start);
+        const end = new DateTime(this.financialStatementTo);
+        const endDate = this.getFormattedDate(end);
+        let totalProfit = this.customers[startDate].map(e => e.profit).reduce((a, b) => a + b, 0);
+
+        while (startDate !== endDate) {
+          start = new DateTime(start).add(1, 'day');
+          startDate = this.getFormattedDate(start);
+
+          if (this.customers[startDate]) {
+            const daySales = this.customers[startDate].map(e => e.profit).reduce((a, b) => a + b, 0);
+            totalProfit += daySales;
+          }
+        }
+
+        return totalProfit;
+      } else {
+        return Object.values(this.customers)
+          .map(e => {
+            return e.map(f => f.profit).reduce((a, b) => a + b, 0);
+          })
+          .reduce((a, b) => a + b, 0);
+      }
     }
   },
   watch: {
     analyticDayFrom () {
       this.analyticDayTo = this.analyticDayFrom
+    },
+    financialStatementFrom () {
+      this.financialStatementTo = this.financialStatementFrom
     }
   },
   methods: {

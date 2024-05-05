@@ -279,9 +279,20 @@
       </div>
       <table style="table-layout: fixed;">
         <tr>
-          <td style="text-align: center; background-color: white; padding: 5px; color: green;">Jumlah Debit: {{ inRM(financeFilteredDebitTotal) }}</td>
-          <td style="text-align: center; background-color: white; padding: 5px; color: red;">Jumlah Kredit: {{ inRM(financeFilteredCreditTotal) }}</td>
-          <td style="text-align: center; background-color: white; padding: 5px;">Baki: {{ inRM(financeFilteredBalance) }}</td>
+          <th>Jumlah Debit</th>
+          <th>Jumlah Kredit</th>
+          <th>Baki</th>
+          <th>Jumlah Jualan</th>
+          <th>Jumlah Untung</th>
+        </tr>
+        <tr>
+          <td style="text-align: center; background-color: white; padding: 5px; color: green;">{{ inRM(financeFilteredDebitTotal) }}</td>
+          <td style="text-align: center; background-color: white; padding: 5px; color: red;">{{ inRM(financeFilteredCreditTotal) }}</td>
+          <td v-if="financeFilteredBalance === 0" style="text-align: center; background-color: white; padding: 5px;">{{ inRM(financeFilteredBalance) }}</td>
+          <td v-else-if="financeFilteredBalance > 0" style="text-align: center; background-color: white; color: green; padding: 5px;">{{ inRM(financeFilteredBalance) }}</td>
+          <td v-else style="text-align: center; background-color: white; color: red; padding: 5px;">{{ inRM(financeFilteredBalance) }}</td>
+          <td style="text-align: center; padding: 5px;">{{ inRM(totalSalesWithinRange) }}</td>
+          <td style="text-align: center; padding: 5px;">{{ inRM(totalProfitWithinRange) }}</td>
         </tr>
       </table>
       <table class="item-list">
